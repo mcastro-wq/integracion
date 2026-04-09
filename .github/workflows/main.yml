@@ -1,29 +1,39 @@
-name: Actualizar Data MEF
+name: Actualizar Data Maestro Inversiones
+
 on:
   schedule:
-    - cron: '0 * * * *' # Se ejecuta cada hora
-  workflow_dispatch: # Permite ejecutarlo manualmente
+    - cron: '0 5 * * *' 
+  workflow_dispatch: 
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    permissions:      # <--- AÑADE ESTO
-      contents: write # <--- AÑADE ESTO
+    permissions:
+      contents: write
+    
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
+
       - name: Configurar Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: '3.9'
-      - name: Instalar librerias
-        run: pip install requests beautifulsoup4
-      - name: Correr Scraper
+
+      - name: Instalar Dependencias Críticas
+        run: |
+          python -m pip install --upgrade pip
+          # Instalamos pandas y librerías de red individualmente para evitar fallos
+          pip install pandas requests beautifulsoup4 openpyxl lxml
+
+      - name: Ejecutar Scraper y Cruce de Datos
         run: python scraper.py
+
       - name: Guardar cambios en GitHub
         run: |
           git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add data.json
-          git commit -m "Data actualizada del MEF" || exit 0
+          git config --local user.name "GitHub Action Bot"
+          # Añadimos todos los posibles archivos generados
+          git add data.json data_cruzada.json || true
+          git commit -m "Cruce unificado de datos: Invierte.pe, CEPLAN, SNPP" || exit 0
           git push
