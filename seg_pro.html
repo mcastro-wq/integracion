@@ -2,46 +2,110 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>SSI - Panel de Control</title>
+    <title>Consulta Regional - Seguimiento de Inversiones</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { background-color: #f4f7f6; padding: 30px; }
-        .mef-card { border-radius: 15px; border: none; box-shadow: 0 10px 25px rgba(0,0,0,0.1); background: white; }
-        .header-mef { background: #801616; color: white; padding: 20px; border-radius: 15px 15px 0 0; }
-        .btn-mef { background: #801616; color: white; border: none; padding: 10px 20px; border-radius: 5px; text-decoration: none; }
-        .btn-mef:hover { background: #a01d1d; color: white; }
+        body { background-color: #f0f2f5; padding: 40px; }
+        .panel-gobernador { border-radius: 20px; border: none; box-shadow: 0 15px 35px rgba(0,0,0,0.2); overflow: hidden; }
+        .header-red { background: #900; color: white; padding: 25px; }
+        .btn-consultar { background: #900; color: white; border: none; font-weight: bold; }
+        .btn-consultar:hover { background: #700; color: white; }
+        .resultado-box { display: none; margin-top: 20px; animation: fadeIn 0.5s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div class="mef-card">
-        <div class="header-mef d-flex justify-content-between align-middle">
-            <h4 class="mb-0">CONSULTA DE INVERSIÓN (CUI: 2199528)</h4>
-            <a href="https://ofi5.mef.gob.pe/ssi/ssi/Index?codigo=2199528" target="_blank" class="btn btn-sm btn-light text-danger fw-bold">Ver en Portal MEF</a>
+<div class="container col-md-8">
+    <div class="panel-gobernador bg-white">
+        <div class="header-red text-center">
+            <h2 class="mb-0">SISTEMA DE CONTROL DE INVERSIONES</h2>
+            <small>Consulta Directa al SSI - MEF</small>
         </div>
-        <div class="p-4 text-center">
-            <p class="text-muted">Debido a las restricciones de seguridad del MEF, haga clic abajo para cargar la data oficial actualizada en tiempo real:</p>
-            
-            <div class="row mt-4">
-                <div class="col-md-6 mx-auto">
-                    <div class="card p-3 shadow-sm border-0">
-                        <h6 class="fw-bold">PROYECTO CHICLAYO - LAMBAYEQUE</h6>
-                        <hr>
-                        <p class="mb-1 text-start small"><strong>Costo Actualizado:</strong> S/ 14,388,203.66</p>
-                        <p class="mb-1 text-start small"><strong>Estado:</strong> ACTIVO</p>
-                        <p class="mb-3 text-start small"><strong>Situación:</strong> VIABLE</p>
-                        <a href="https://ofi5.mef.gob.pe/ssi/ssi/Index?codigo=2199528" target="_blank" class="btn-mef">OBTENER REPORTE COMPLETO</a>
+        
+        <div class="p-5">
+            <div class="input-group input-group-lg mb-4">
+                <span class="input-group-text">CUI</span>
+                <input type="text" id="inputCui" class="form-control" placeholder="Ingrese el Código Único" value="2199528">
+                <button class="btn btn-consultar px-4" onclick="ejecutarConsulta()">EJECUTAR CONSULTA</button>
+            </div>
+
+            <div id="cargando" class="text-center d-none">
+                <div class="spinner-border text-danger" role="status"></div>
+                <p class="mt-2 text-muted">Accediendo a la base de datos del MEF...</p>
+            </div>
+
+            <div id="boxResultado" class="resultado-box">
+                <div class="alert alert-dark bg-dark text-white mb-4">
+                    <h5 id="resNombre" class="mb-0 text-uppercase"></h5>
+                </div>
+                
+                <div class="row text-center">
+                    <div class="col-md-4">
+                        <div class="card p-3 shadow-sm border-0">
+                            <small class="text-muted">COSTO ACTUALIZADO</small>
+                            <h3 id="resCosto" class="text-danger fw-bold mb-0"></h3>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card p-3 shadow-sm border-0">
+                            <small class="text-muted">ESTADO</small>
+                            <h3 id="resEstado" class="text-success fw-bold mb-0"></h3>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card p-3 shadow-sm border-0">
+                            <small class="text-muted">SITUACIÓN</small>
+                            <h3 id="resSituacion" class="text-primary fw-bold mb-0"></h3>
+                        </div>
                     </div>
                 </div>
-            </div>
-            
-            <div class="mt-4 small text-muted">
-                * La información se extrae directamente del Sistema de Seguimiento de Inversiones (SSI).
             </div>
         </div>
     </div>
 </div>
+
+<script>
+async function ejecutarConsulta() {
+    const cui = document.getElementById("inputCui").value;
+    const box = document.getElementById("boxResultado");
+    const loader = document.getElementById("cargando");
+
+    if (!cui) return alert("Por favor, ingrese un CUI");
+
+    box.style.display = "none";
+    loader.classList.remove("d-none");
+
+    // Usamos el Proxy AllOrigins para saltar el bloqueo de CORS
+    const proxy = "https://api.allorigins.win/get?url=";
+    const target = `https://ofi5.mef.gob.pe/ssi/Home/BusquedaCUI?codigo=${cui}`;
+
+    try {
+        const response = await fetch(proxy + encodeURIComponent(target));
+        const data = await response.json();
+        
+        // El MEF devuelve un texto JSON dentro de data.contents
+        const infoRaw = JSON.parse(data.contents);
+        const info = Array.isArray(infoRaw) ? infoRaw[0] : infoRaw;
+
+        if (info && info.CO_INVERSION) {
+            document.getElementById("resNombre").innerText = info.NO_INVERSION;
+            document.getElementById("resCosto").innerText = "S/ " + info.AM_COSTO_ACTUALIZADO.toLocaleString();
+            document.getElementById("resEstado").innerText = info.DES_ESTADO;
+            document.getElementById("resSituacion").innerText = info.DES_SITUACION || 'VIABLE';
+            
+            box.style.display = "block";
+        } else {
+            alert("No se encontró información para el CUI ingresado.");
+        }
+    } catch (e) {
+        console.error(e);
+        alert("Error de conexión. El MEF está bloqueando el acceso o el código es inválido.");
+    } finally {
+        loader.classList.add("d-none");
+    }
+}
+</script>
 
 </body>
 </html>
