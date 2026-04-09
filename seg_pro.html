@@ -2,86 +2,65 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Dashboard Estratégico Regional</title>
+    <title>Dashboard Regional Integrado</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        .card-header { font-weight: bold; text-transform: uppercase; }
-        .data-label { font-size: 0.75rem; color: #666; display: block; }
-        .data-value { font-weight: bold; color: #1a1a1a; }
-        .border-left-red { border-left: 5px solid #900; }
-        .border-left-blue { border-left: 5px solid #004a99; }
+        .card-header { background: #1a1a1a; color: white; font-weight: bold; }
+        .sistema-tag { font-size: 0.7rem; padding: 2px 8px; border-radius: 10px; float: right; color: white; }
+        .bg-invierte { background: #900; }
+        .bg-ceplan { background: #004a99; }
+        .bg-snpp { background: #333; }
     </style>
 </head>
-<body class="bg-light">
-
-<nav class="navbar navbar-dark bg-dark mb-4">
-    <div class="container">
-        <span class="navbar-brand">PANEL DE CONTROL PARA EL GOBERNADOR - CRUCE DE SISTEMAS</span>
-    </div>
-</nav>
+<body class="bg-light p-4">
 
 <div class="container">
-    <div class="row mb-4">
-        <div class="col-md-12">
-            <div class="card p-3 shadow-sm">
-                <div class="input-group">
-                    <input type="text" id="cuiInput" class="form-control form-control-lg" placeholder="INGRESE CUI PARA EL CRUCE DE INFORMACIÓN (Ej: 2199528)">
-                    <button class="btn btn-danger btn-lg" onclick="cruzadoEstrategico()">CRUZAR INFORMACIÓN</button>
-                </div>
-            </div>
-        </div>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold">CONTROL ESTRATÉGICO DE INVERSIONES</h2>
+        <span class="badge bg-dark">CUI: 2199528</span>
     </div>
 
-    <div id="panelResultados" class="row d-none">
-        <div class="col-md-6 mb-4">
-            <div class="card h-100 border-left-red shadow-sm">
-                <div class="card-header bg-white text-danger">INVIERTE.PE & ABASTECIMIENTO (SNA)</div>
+    <div class="row g-4">
+        <div class="col-md-6">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header">DATOS DE INVERSIÓN <span class="sistema-tag bg-invierte">INVIERTE.PE</span></div>
                 <div class="card-body">
-                    <span class="data-label">Nombre del Proyecto:</span>
-                    <p id="invNombre" class="data-value">---</p>
+                    <h6 id="nom_proyecto" class="fw-bold text-uppercase">Cargando...</h6>
                     <hr>
+                    <p class="mb-1 text-muted small">COSTO ACTUALIZADO</p>
+                    <h3 id="costo_mef" class="text-danger fw-bold">S/ 0.00</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header">ALINEAMIENTO ESTRATÉGICO <span class="sistema-tag bg-ceplan">CEPLAN</span></div>
+                <div class="card-body">
+                    <p class="mb-1 text-muted small">OBJETIVO ESTRATÉGICO (POI/PEI)</p>
+                    <p id="obj_estrategico" class="fw-bold">---</p>
+                    <p class="mb-1 text-muted small">BRECHA QUE CIERRA</p>
+                    <p id="brecha_mef" class="text-primary fw-bold">---</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header">EJECUCIÓN FINANCIERA <span class="sistema-tag bg-snpp">SNPP / SNA</span></div>
+                <div class="card-body">
                     <div class="row text-center">
-                        <div class="col-6">
-                            <span class="data-label">Costo Actualizado</span>
-                            <p id="invCosto" class="text-danger">S/ 0.00</p>
-                        </div>
-                        <div class="col-6">
-                            <span class="data-label">Avance Financiero</span>
-                            <p id="invAvance" class="text-success">0.00%</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-6 mb-4">
-            <div class="card h-100 border-left-blue shadow-sm">
-                <div class="card-header bg-white text-primary">ALINEAMIENTO ESTRATÉGICO (CEPLAN)</div>
-                <div class="card-body">
-                    <span class="data-label">Objetivo Estratégico (PEI):</span>
-                    <p id="cepObjetivo" class="data-value">---</p>
-                    <span class="data-label">Brecha Identificada:</span>
-                    <p id="cepBrecha" class="data-value">---</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-12 mb-4">
-            <div class="card border-dark shadow-sm">
-                <div class="card-header bg-dark text-white text-center">SISTEMA NACIONAL DE PLANEAMIENTO PRESUPUESTARIO (SNPP)</div>
-                <div class="card-body">
-                    <div class="row">
                         <div class="col-md-4 border-end">
-                            <span class="data-label text-center">PIA (Presupuesto Inicial)</span>
-                            <h4 id="snppPia" class="text-center">S/ 0.00</h4>
+                            <p class="text-muted small">PIM (Presupuesto Anual)</p>
+                            <h4 id="pim_mef">S/ 0.00</h4>
                         </div>
                         <div class="col-md-4 border-end">
-                            <span class="data-label text-center">PIM (Presupuesto Modificado)</span>
-                            <h4 id="snppPim" class="text-center">S/ 0.00</h4>
+                            <p class="text-muted small">DEVENGADO (Gasto Real)</p>
+                            <h4 id="dev_mef" class="text-success">S/ 0.00</h4>
                         </div>
-                        <div class="col-md-4 text-center">
-                            <span class="data-label">Certificado vs Devengado</span>
-                            <canvas id="graficoPresupuesto"></canvas>
+                        <div class="col-md-4">
+                            <p class="text-muted small">SALDO POR EJECUTAR</p>
+                            <h4 id="saldo_mef" class="text-warning">S/ 0.00</h4>
                         </div>
                     </div>
                 </div>
@@ -91,40 +70,25 @@
 </div>
 
 <script>
-async function cruzadoEstrategico() {
-    const cui = document.getElementById('cuiInput').value;
-    if(!cui) return;
+    async function cargarDataCruzada() {
+        try {
+            const res = await fetch('data_cruzada.json?v=' + new Date().getTime());
+            const data = await res.json();
+            const inv = data[0];
 
-    document.getElementById('panelResultados').classList.remove('d-none');
+            document.getElementById('nom_proyecto').innerText = inv.nombre;
+            document.getElementById('costo_mef').innerText = "S/ " + inv.monto_actualizado.toLocaleString();
+            document.getElementById('obj_estrategico').innerText = inv.objetivo_estrategico;
+            document.getElementById('brecha_mef').innerText = inv.brecha;
+            document.getElementById('pim_mef').innerText = "S/ " + inv.pim.toLocaleString();
+            document.getElementById('dev_mef').innerText = "S/ " + inv.devengado.toLocaleString();
+            document.getElementById('saldo_mef').innerText = "S/ " + (inv.pim - inv.devengado).toLocaleString();
 
-    // 1. URL DE DATOS ABIERTOS (MEF)
-    const urlMef = `https://api.allorigins.win/get?url=${encodeURIComponent('https://ofi5.mef.gob.pe/ssi/Home/BusquedaCUI?codigo=' + cui)}`;
-
-    // 2. URL DE CEPLAN (Ejemplo de consulta a dataset de brechas)
-    // Nota: CEPLAN publica CSVs en su portal de datos abiertos
-    
-    try {
-        const resMef = await fetch(urlMef);
-        const dataMef = await resMef.json();
-        const info = JSON.parse(dataMef.contents)[0];
-
-        if(info) {
-            // Rellenar Invierte.pe
-            document.getElementById('invNombre').innerText = info.NO_INVERSION;
-            document.getElementById('invCosto').innerText = "S/ " + info.AM_COSTO_ACTUALIZADO.toLocaleString();
-            
-            // Simulación de cruce con CEPLAN (Se extrae de la metadata del proyecto)
-            document.getElementById('cepObjetivo').innerText = "Cierre de brechas en infraestructura de Salud - Región Lambayeque";
-            document.getElementById('cepBrecha').innerText = "Acceso a servicios de salud básicos (Nivel 1-3)";
-
-            // Simulación de SNPP
-            document.getElementById('snppPia').innerText = "S/ " + (info.AM_COSTO_ACTUALIZADO * 0.8).toLocaleString();
-            document.getElementById('snppPim').innerText = "S/ " + info.AM_COSTO_ACTUALIZADO.toLocaleString();
+        } catch (e) {
+            console.error("No se pudo cargar el archivo de cruce de datos.");
         }
-    } catch (e) {
-        console.error("Error al cruzar bases de datos gubernamentales", e);
     }
-}
+    window.onload = cargarDataCruzada;
 </script>
 </body>
 </html>
