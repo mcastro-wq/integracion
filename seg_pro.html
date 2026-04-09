@@ -38,39 +38,34 @@
 </div>
 
 <script>
-    async function cargarDatos() {
-        try {
-            // Buscamos el archivo que genera el robot
-            const res = await fetch('data.json?t=' + new Date().getTime());
-            const datos = await res.json();
-            
-            const tbody = document.getElementById('tabla-cuerpo');
-            tbody.innerHTML = '';
+ async function cargarDatos() {
+    const cui = "2199528";
+    // Este proxy permite que el navegador lea el MEF sin bloqueos de seguridad
+    const url = `https://api.allorigins.win/get?url=${encodeURIComponent('https://ofi5.mef.gob.pe/ssi/Home/ArquitecturaCUI?codigo=' + cui)}`;
 
-            if (datos.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" class="text-center">El archivo data.json está vacío. Ejecuta el Scraper en Actions.</td></tr>';
-                return;
-            }
+    try {
+        const res = await fetch(url);
+        const json = await res.json();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(json.contents, 'text/html');
 
-            datos.forEach(item => {
-                tbody.innerHTML += `
-                    <tr>
-                        <td class="fw-bold text-primary">${item.cui}</td>
-                        <td style="font-size: 0.8rem; width: 45%;">${item.nombre}</td>
-                        <td class="text-end fw-bold">S/ ${item.pim.toLocaleString()}</td>
-                        <td>${item.situacion}</td>
-                        <td><span class="status-pill">${item.estado}</span></td>
-                    </tr>
-                `;
-            });
-        } catch (error) {
-            document.getElementById('tabla-cuerpo').innerHTML = `
-                <tr><td colspan="5" class="text-center text-danger">
-                    Error: No se encontró data.json. <br>
-                    Asegúrate de ejecutar el "Action" en GitHub primero.
-                </td></tr>`;
-        }
+        // Extraemos directamente del HTML del MEF
+        const nombre = doc.getElementById("td_nominv")?.innerText || "No encontrado";
+        const monto = doc.getElementById("val_cta")?.innerText || "0.00";
+
+        // Aquí rellenas tu tabla directamente
+        document.getElementById("tabla-cuerpo").innerHTML = `
+            <tr>
+                <td>${cui}</td>
+                <td>${nombre}</td>
+                <td>S/ ${monto}</td>
+                <td>ACTUALIZADO</td>
+            </tr>
+        `;
+    } catch (e) {
+        console.log("Error de conexión directa");
     }
+}
 
     window.onload = cargarDatos;
 </script>
