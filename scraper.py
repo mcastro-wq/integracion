@@ -4,47 +4,75 @@ import json
 import time
 
 def scrapear_mef(cui):
-    # Esta es la URL que devuelve el contenido que me pasaste
+    # Intentamos con la URL directa de consulta
     url = f"https://ofi5.mef.gob.pe/ssi/Home/ArquitecturaCUI?codigo={cui}"
     
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-        "Referer": "https://ofi5.mef.gob.pe/ssi/"
+        "Accept-Language": "es-ES,es;q=0.8,en-US;q=0.5,en;q=0.3",
+        "Connection": "keep-alive",
+        "Upgrade-Insecure-Requests": "1",
+        "Cache-Control": "max-age=0"
     }
     
     try:
-        print(f"Consultando CUI: {cui}...")
-        res = requests.get(url, headers=headers, timeout=25)
-        res.encoding = 'utf-8' # Forzamos codificación para tildes
+        session = requests.Session()
+        print(f"Iniciando raspado de CUI: {cui}...")
         
+        # Hacemos la petición
+        res = session.get(url, headers=headers, timeout=30)
+        res.encoding = 'utf-8'
+        
+        if res.status_code != 200:
+            print(f"Error de servidor: {res.status_code}")
+            return None
+
         soup = BeautifulSoup(res.text, 'html.parser')
         
-        # EXTRACCIÓN BASADA EN TU CÓDIGO FUENTE:
-        # Nota: Usamos .text.strip() para limpiar espacios
+        # 1. Extraer Nombre (ID: td_nominv)
+        nombre_element = soup.find(id="td_nominv")
+        nombre = nombre_element.get_text(strip=True) if nombre_element else "No encontrado"
         
-        nombre = soup.find(id="td_nominv").get_text(strip=True) if soup.find(id="td_nominv") else "No encontrado"
-        estado = soup.find(id="td_estcu").get_text(strip=True) if soup.find(id="td_estcu") else "N/A"
-        situacion = soup.find(id="td_situinv").get_text(strip=True) if soup.find(id="td_situinv") else "N/A"
+        # 2. Extraer Estado (ID: td_estcu)
+        estado_element = soup.find(id="td_estcu")
+        estado = estado_element.get_text(strip=True) if estado_element else "N/A"
         
-        # El costo actualizado según tu código fuente está en el ID 'val_cta'
-        costo_raw = soup.find(id="val_cta").get_text(strip=True) if soup.find(id="val_cta") else "0"
-        costo_num = float(costo_raw.replace(',', '')) if costo_raw != "" else 0.0
+        # 3. Extraer Situación (ID: td_situinv)
+        situacion_element = soup.find(id="td_situinv")
+        situacion = situacion_element.get_text(strip=True) if situacion_element else "N/A"
+        
+        # 4. Extraer Costo Actualizado (ID: val_cta)
+        costo_element = soup.find(id="val_cta")
+        costo_raw = costo_element.get_text(strip=True) if costo_element else "0"
+        
+        # Limpiar el número de comas y espacios
+        costo_limpio = costo_raw.replace(',', '').replace('S/', '').strip()
+        try:
+            pim = float(costo_limpio)
+        except:
+            pim = 0.0
+
+        # Si el nombre sigue vacío, es que el MEF no cargó la data
+        if nombre == "No encontrado" or nombre == "":
+            print(f"Atención: El CUI {cui} devolvió página vacía. El MEF podría estar bloqueando el bot.")
+            return None
 
         return {
             "cui": cui,
             "nombre": nombre,
             "estado": estado,
             "situacion": situacion,
-            "pim": costo_num,
-            "avance": 0, # Dato que suele cargar por JS aparte
-            "actualizado": time.strftime("%d/%m/%Y")
+            "pim": pim,
+            "avance": 0,
+            "actualizado": time.strftime("%d/%m/%Y %H:%M")
         }
+
     except Exception as e:
-        print(f"Error procesando {cui}: {e}")
+        print(f"Error crítico en {cui}: {str(e)}")
         return None
 
-# Lista de tus proyectos (Añade aquí todos los que necesites)
+# --- LISTA DE CUIS ---
 mis_cuis = ["2199528"] 
 
 resultados = []
@@ -52,9 +80,11 @@ for c in mis_cuis:
     data = scrapear_mef(c)
     if data:
         resultados.append(data)
+    # Pausa de 2 segundos para no ser bloqueados
+    time.sleep(2)
 
-# Guardamos el JSON
+# GUARDAR SIEMPRE (aunque sea vacío para debug, pero esperamos que tenga data)
 with open("data.json", "w", encoding='utf-8') as f:
     json.dump(resultados, f, ensure_ascii=False, indent=4)
 
-print("¡Archivo data.json generado con éxito!")
+print(f"Proceso finalizado. Registros capturados: {len(resultados)}")
