@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ssi - Seguimiento de Inversiones (GitHub Cloud)</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #801616;
+            --nav-accent: #ffc107;
+            --bg-body: #f4f6f9;
+            --bg-card: #ffffff;
+            --text-main: #222;
+            --border-color: #dee2e6;
+            --shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        body.dark-mode {
+            --bg-body: #0f1113;
+            --bg-card: #1a1d21;
+            --text-main: #f1f1f1;
+            --border-color: #2d3238;
+        }
+
+        body { 
+            background-color: var(--bg-body); 
+            font-family: 'Segoe UI', sans-serif; 
+            color: var(--text-main);
+            transition: 0.3s;
+        }
+
+        .header-mef { 
+            background-color: var(--primary-color); 
+            color: white; 
+            padding: 20px 0; 
+            border-bottom: 5px solid var(--nav-accent); 
+        }
+
+        .table-container { 
+            background: var(--bg-card); 
+            border-radius: 12px; 
+            box-shadow: var(--shadow); 
+            padding: 20px; 
+            border: 1px solid var(--border-color);
+        }
+
+        .table thead th {
+            background-color: var(--nav-accent) !important;
+            color: #000 !important;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+        }
+
+        .progress { 
+            height: 18px; 
+            border-radius: 10px; 
+            background-color: #e9ecef; 
+            position: relative; 
+        }
+
+        .progress-bar-text { 
+            position: absolute; width: 100%; text-align: center; 
+            font-size: 0.65rem; font-weight: 800; line-height: 18px; z-index: 5;
+        }
+
+        .status-pill {
+            padding: 2px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: bold;
+        }
+
+        .monto { font-family: monospace; font-weight: 600; }
+        
+        #last-update { font-size: 0.8rem; opacity: 0.8; }
+    </style>
+</head>
+<body>
+
+<div class="header-mef mb-4">
+    <div class="container d-flex justify-content-between align-items-center">
+        <div>
+            <h4 class="fw-bold mb-0"><i class="bi bi-cloud-check"></i> SSI - PANEL DE CONTROL</h4>
+            <div id="last-update"><i class="bi bi-arrow-repeat"></i> Sincronizado con GitHub Actions</div>
+        </div>
+        <button onclick="toggleDarkMode()" class="btn btn-outline-light btn-sm">
+            <i class="bi bi-moon-stars"></i>
+        </button>
+    </div>
+</div>
+
+<div class="container">
+    <div class="card mb-4 shadow-sm border-0">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                        <input type="text" id="buscador" class="form-control border-start-0" placeholder="Filtrar por CUI o Nombre en la base de datos..." onkeyup="filtrarData()">
+                    </div>
+                </div>
+                <div class="col-md-4 text-end">
+                    <button onclick="cargarData()" class="btn btn-primary w-100">
+                        <i class="bi bi-cloud-download"></i> Actualizar Vista
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="table-container mb-5">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle" id="tablaInversiones">
+                <thead>
+                    <tr>
+                        <th class="text-center">CUI</th>
+                        <th>Nombre de la Inversión / Situación</th>
+                        <th class="text-end">Costo Actualizado (S/)</th>
+                        <th class="text-center">Avance Físico</th>
+                        <th class="text-center">Estado</th>
+                    </tr>
+                </thead>
+                <tbody id="cuerpo-tabla">
+                    <tr>
+                        <td colspan="5" class="text-center py-5">
+                            <div class="spinner-border text-danger" role="status"></div>
+                            <br><span class="text-muted mt-2 d-block">Cargando datos desde GitHub...</span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    let todosLosDatos = [];
+
+    // 1. CARGAR DATA DESDE EL JSON GENERADO POR EL SCRAPER
+    async function cargarData() {
+        try {
+            // Buscamos el archivo data.json que genera el scraper.py en tu repo
+            const response = await fetch('data.json?t=' + list.getTime()); 
+            if (!response.ok) throw new Error("No se encontró data.json");
+            
+            todosLosDatos = await response.json();
+            renderizarTabla(todosLosDatos);
+        } catch (error) {
+            document.getElementById('cuerpo-tabla').innerHTML = `
+                <tr>
+                    <td colspan="5" class="text-center py-5 text-danger">
+                        <i class="bi bi-exclamation-triangle fs-1"></i><br>
+                        No se encontró el archivo de datos.<br>
+                        Ejecuta el Scraper en la pestaña <b>Actions</b> de GitHub.
+                    </td>
+                </tr>`;
+        }
+    }
+
+    // 2. RENDERIZAR EN LA TABLA
+    function renderizarTabla(lista) {
+        const tbody = document.getElementById('cuerpo-tabla');
+        tbody.innerHTML = '';
+
+        if (lista.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center">No hay registros coincidentes.</td></tr>';
+            return;
+        }
+
+        lista.forEach(item => {
+            const avance = item.avance || 0;
+            const colorBarra = avance > 75 ? '#198754' : (avance > 40 ? '#ffc107' : '#dc3545');
+
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td class="text-center fw-bold text-primary">${item.cui}</td>
+                <td>
+                    <div class="fw-bold small">${item.nombre}</div>
+                    <div class="text-muted" style="font-size: 0.7rem;">SITUACIÓN: ${item.situacion || 'VIABLE'}</div>
+                </td>
+                <td class="text-end monto">S/ ${parseFloat(item.pim).toLocaleString('es-PE', {minimumFractionDigits: 2})}</td>
+                <td style="width: 140px">
+                    <div class="progress">
+                        <div class="progress-bar-text">${avance}%</div>
+                        <div class="bar-fill" style="width: ${avance}%; background-color: ${colorBarra}; height: 100%;"></div>
+                    </div>
+                </td>
+                <td class="text-center">
+                    <span class="status-pill bg-opacity-10 ${item.estado.includes('ACTIVO') ? 'bg-success text-success' : 'bg-danger text-danger'}">
+                        ${item.estado}
+                    </span>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+
+    // 3. FILTRADO EN TIEMPO REAL
+    function filtrarData() {
+        const busqueda = document.getElementById('buscador').value.toLowerCase();
+        const filtrados = todosLosDatos.filter(d => 
+            d.cui.includes(busqueda) || d.nombre.toLowerCase().includes(busqueda)
+        );
+        renderizarTabla(filtrados);
+    }
+
+    function toggleDarkMode() {
+        document.body.classList.toggle('dark-mode');
+    }
+
+    // Iniciar carga
+    document.addEventListener('DOMContentLoaded', cargarData);
+</script>
+
+</body>
+</html>
