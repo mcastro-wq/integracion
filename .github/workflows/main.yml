@@ -1,0 +1,27 @@
+name: Actualizar Data MEF
+on:
+  schedule:
+    - cron: '0 * * * *' # Se ejecuta cada hora
+  workflow_dispatch: # Permite ejecutarlo manualmente
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v2
+      - name: Configurar Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+      - name: Instalar librerias
+        run: pip install requests beautifulsoup4
+      - name: Correr Scraper
+        run: python scraper.py
+      - name: Guardar cambios en GitHub
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add data.json
+          git commit -m "Data actualizada del MEF" || exit 0
+          git push
