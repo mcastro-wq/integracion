@@ -38,36 +38,37 @@
 </div>
 
 <script>
- async function cargarDatos() {
+async function consultarDataMEF() {
     const cui = "2199528";
-    // Este proxy permite que el navegador lea el MEF sin bloqueos de seguridad
-    const url = `https://api.allorigins.win/get?url=${encodeURIComponent('https://ofi5.mef.gob.pe/ssi/Home/ArquitecturaCUI?codigo=' + cui)}`;
+    // Usamos un proxy que añade las cabeceras necesarias automáticamente
+    const proxyUrl = "https://api.allorigins.win/get?url=";
+    const targetUrl = `https://ofi5.mef.gob.pe/ssi/Home/BusquedaCUI?codigo=${cui}`;
 
     try {
-        const res = await fetch(url);
-        const json = await res.json();
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(json.contents, 'text/html');
+        const response = await fetch(proxyUrl + encodeURIComponent(targetUrl));
+        const data = await response.json();
+        
+        // La data viene dentro de 'contents' como un texto JSON
+        const info = JSON.parse(data.contents);
 
-        // Extraemos directamente del HTML del MEF
-        const nombre = doc.getElementById("td_nominv")?.innerText || "No encontrado";
-        const monto = doc.getElementById("val_cta")?.innerText || "0.00";
-
-        // Aquí rellenas tu tabla directamente
-        document.getElementById("tabla-cuerpo").innerHTML = `
-            <tr>
-                <td>${cui}</td>
-                <td>${nombre}</td>
-                <td>S/ ${monto}</td>
-                <td>ACTUALIZADO</td>
-            </tr>
-        `;
-    } catch (e) {
-        console.log("Error de conexión directa");
+        if (info) {
+            document.getElementById("tabla-cuerpo").innerHTML = `
+                <tr>
+                    <td class="fw-bold">${info.CO_INVERSION}</td>
+                    <td>${info.NO_INVERSION}</td>
+                    <td class="text-end">S/ ${info.AM_COSTO_ACTUALIZADO.toLocaleString()}</td>
+                    <td>${info.DES_SITUACION || 'VIABLE'}</td>
+                    <td><span class="badge bg-success">${info.DES_ESTADO}</span></td>
+                </tr>
+            `;
+        }
+    } catch (error) {
+        console.error("Error capturando data:", error);
+        document.getElementById("tabla-cuerpo").innerHTML = '<tr><td colspan="5" class="text-danger text-center">Error: El MEF no respondió a la consulta.</td></tr>';
     }
 }
 
-    window.onload = cargarDatos;
+window.onload = consultarDataMEF;
 </script>
 </body>
 </html>
