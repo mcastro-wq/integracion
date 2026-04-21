@@ -2,66 +2,63 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Dashboard Regional Integrado</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Regional - Lambayeque</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         .card-header { background: #1a1a1a; color: white; font-weight: bold; }
-        .sistema-tag { font-size: 0.7rem; padding: 2px 8px; border-radius: 10px; float: right; color: white; }
         .bg-invierte { background: #900; }
-        .bg-ceplan { background: #004a99; }
-        .bg-snpp { background: #333; }
+        .highlight-card { border-left: 5px solid #900; }
+        .table-container { max-height: 400px; overflow-y: auto; }
+        tr.selected { background-color: #fff3f3 !important; border: 2px solid #900; }
     </style>
 </head>
 <body class="bg-light p-4">
 
-<div class="container">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="fw-bold">CONTROL ESTRATÉGICO DE INVERSIONES</h2>
-        <span class="badge bg-dark">CUI: 2199528</span>
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2 class="fw-bold">CONTROL ESTRATÉGICO DE INVERSIONES - LAMBAYEQUE</h2>
+            <p class="text-muted">Consulta en tiempo real de la cartera regional</p>
+        </div>
+        <div class="col-md-4">
+            <div class="input-group shadow-sm">
+                <input type="text" id="inputBusqueda" class="form-control" placeholder="Ingrese CUI o nombre del proyecto...">
+                <button class="btn btn-dark" onclick="buscarProyecto()">Buscar</button>
+            </div>
+        </div>
     </div>
 
     <div class="row g-4">
-        <div class="col-md-6">
-            <div class="card h-100 shadow-sm">
-                <div class="card-header">DATOS DE INVERSIÓN <span class="sistema-tag bg-invierte">INVIERTE.PE</span></div>
-                <div class="card-body">
-                    <h6 id="nom_proyecto" class="fw-bold text-uppercase">Cargando...</h6>
-                    <hr>
-                    <p class="mb-1 text-muted small">COSTO ACTUALIZADO</p>
-                    <h3 id="costo_mef" class="text-danger fw-bold">S/ 0.00</h3>
+        <div class="col-lg-5">
+            <div class="card h-100 shadow highlight-card">
+                <div class="card-header bg-dark">DETALLE DE LA INVERSIÓN SELECCIONADA</div>
+                <div class="card-body" id="detalleProyecto">
+                    <h5 class="text-muted text-center py-5">Seleccione un proyecto de la lista o ingrese un CUI para ver el detalle</h5>
                 </div>
             </div>
         </div>
 
-        <div class="col-md-6">
-            <div class="card h-100 shadow-sm">
-                <div class="card-header">ALINEAMIENTO ESTRATÉGICO <span class="sistema-tag bg-ceplan">CEPLAN</span></div>
-                <div class="card-body">
-                    <p class="mb-1 text-muted small">OBJETIVO ESTRATÉGICO (POI/PEI)</p>
-                    <p id="obj_estrategico" class="fw-bold">---</p>
-                    <p class="mb-1 text-muted small">BRECHA QUE CIERRA</p>
-                    <p id="brecha_mef" class="text-primary fw-bold">---</p>
+        <div class="col-lg-7">
+            <div class="card shadow">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    LISTADO GENERAL DE PROYECTOS
+                    <span class="badge bg-secondary" id="countProyectos">0 registros</span>
                 </div>
-            </div>
-        </div>
-
-        <div class="col-md-12">
-            <div class="card shadow-sm">
-                <div class="card-header">EJECUCIÓN FINANCIERA <span class="sistema-tag bg-snpp">SNPP / SNA</span></div>
-                <div class="card-body">
-                    <div class="row text-center">
-                        <div class="col-md-4 border-end">
-                            <p class="text-muted small">PIM (Presupuesto Anual)</p>
-                            <h4 id="pim_mef">S/ 0.00</h4>
-                        </div>
-                        <div class="col-md-4 border-end">
-                            <p class="text-muted small">DEVENGADO (Gasto Real)</p>
-                            <h4 id="dev_mef" class="text-success">S/ 0.00</h4>
-                        </div>
-                        <div class="col-md-4">
-                            <p class="text-muted small">SALDO POR EJECUTAR</p>
-                            <h4 id="saldo_mef" class="text-warning">S/ 0.00</h4>
-                        </div>
+                <div class="card-body p-0">
+                    <div class="table-container">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-dark sticky-top">
+                                <tr>
+                                    <th>CUI</th>
+                                    <th>Nombre del Proyecto</th>
+                                    <th>Avance %</th>
+                                    <th>PIM 2026</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tablaCuerpo">
+                                </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -70,36 +67,86 @@
 </div>
 
 <script>
-async function cargarDataCruzada() {
-    try {
-        const cuiBuscado = "2199528"; 
-        const res = await fetch('data_cruzada.json?v=' + new Date().getTime());
-        const listaData = await res.json();
+    let dataCompleta = [];
 
-        const inv = listaData.find(p => String(p.cui) === cuiBuscado);
-
-        if (inv) {
-            document.getElementById('nom_proyecto').innerText = inv.nombre;
-            document.getElementById('costo_mef').innerText = "S/ " + inv.monto_actualizado.toLocaleString('es-PE', {minimumFractionDigits: 2});
-            
-            // PIM del año actual
-            document.getElementById('pim_mef').innerText = "S/ " + inv.pim.toLocaleString('es-PE', {minimumFractionDigits: 2});
-            
-            // Gasto total (Devengado Acumulado)
-            document.getElementById('dev_mef').innerText = "S/ " + inv.devengado.toLocaleString('es-PE', {minimumFractionDigits: 2});
-            
-            // Saldo respecto al Costo Actualizado (Lo que falta para terminar la obra)
-            const saldoTotal = inv.monto_actualizado - inv.devengado;
-            document.getElementById('saldo_mef').innerText = "S/ " + saldoTotal.toLocaleString('es-PE', {minimumFractionDigits: 2});
-
-            // Opcional: Mostrar estado y situación en consola o algún otro tag
-            console.log(`Estado: ${inv.ESTADO} | Situación: ${inv.SITUACION}`);
+    async function cargarBaseDeDatos() {
+        try {
+            const res = await fetch('data_cruzada.json?v=' + new Date().getTime());
+            dataCompleta = await res.json();
+            document.getElementById('countProyectos').innerText = dataCompleta.length + " proyectos";
+            renderizarTabla(dataCompleta);
+        } catch (e) {
+            console.error("Error cargando JSON:", e);
         }
-    } catch (e) {
-        console.error("Error al cargar data:", e);
     }
-}
-    window.onload = cargarDataCruzada;
+
+    function renderizarTabla(lista) {
+        const cuerpo = document.getElementById('tablaCuerpo');
+        cuerpo.innerHTML = lista.map(p => `
+            <tr style="cursor:pointer" onclick="mostrarDetalle('${p.cui}')">
+                <td><span class="badge bg-light text-dark border">${p.cui}</span></td>
+                <td class="small text-uppercase">${p.nombre.substring(0, 80)}...</td>
+                <td>
+                    <div class="progress" style="height: 10px;">
+                        <div class="progress-bar bg-success" style="width: ${p.avance_fisico_porc}%"></div>
+                    </div>
+                    <small>${p.avance_fisico_porc}%</small>
+                </td>
+                <td class="fw-bold text-nowrap">S/ ${p.pim_2026.toLocaleString()}</td>
+            </tr>
+        `).join('');
+    }
+
+    function buscarProyecto() {
+        const term = document.getElementById('inputBusqueda').value.toLowerCase();
+        const filtrados = dataCompleta.filter(p => 
+            p.cui.includes(term) || p.nombre.toLowerCase().includes(term)
+        );
+        renderizarTabla(filtrados);
+    }
+
+    function mostrarDetalle(cui) {
+        const inv = dataCompleta.find(p => p.cui === cui);
+        if (!inv) return;
+
+        const detalleDiv = document.getElementById('detalleProyecto');
+        detalleDiv.innerHTML = `
+            <h4 class="fw-bold text-primary mb-3">${inv.nombre}</h4>
+            <div class="row mb-3">
+                <div class="col-6">
+                    <small class="text-muted d-block">ESTADO</small>
+                    <span class="badge bg-info">${inv.estado_invierte}</span>
+                </div>
+                <div class="col-6 text-end">
+                    <small class="text-muted d-block">AVANCE FÍSICO</small>
+                    <h3 class="fw-bold text-success">${inv.avance_fisico_porc}%</h3>
+                </div>
+            </div>
+            <hr>
+            <div class="mb-3">
+                <p class="mb-1 text-muted small">COSTO ACTUALIZADO</p>
+                <h4 class="fw-bold text-dark">S/ ${inv.costo_actualizado.toLocaleString()}</h4>
+            </div>
+            <div class="p-3 bg-light rounded border-start border-4 border-danger mb-3">
+                <h6 class="fw-bold text-danger">PROBLEMÁTICA ACTUAL:</h6>
+                <p class="small mb-0">${inv.estado_situacional_mef}</p>
+            </div>
+            <div class="p-3 bg-light rounded border-start border-4 border-success">
+                <h6 class="fw-bold text-success">PRÓXIMOS PASOS (F12B):</h6>
+                <p class="small mb-0">${inv.seguimiento_proximos_pasos}</p>
+            </div>
+            <div class="mt-4">
+                <small class="text-muted">Unidad Ejecutora: ${inv.unidad_ejecutora}</small>
+            </div>
+        `;
+    }
+
+    // Escuchar Enter en el buscador
+    document.getElementById('inputBusqueda').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') buscarProyecto();
+    });
+
+    window.onload = cargarBaseDeDatos;
 </script>
 </body>
 </html>
