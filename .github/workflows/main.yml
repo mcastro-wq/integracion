@@ -31,6 +31,11 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action Bot"
-          git add data_detalle.json data_f12b.json data_situacion.json
-          git commit -m "Update Data via API Lambayeque: $(date +'%Y-%m-%d %H:%M')" || exit 0
+          
+          # El '|| true' hace que si el archivo no existe, ignore el error y siga
+          git add data_detalle.json || true
+          git add data_f12b.json || true
+          git add data_situacion.json || true
+          
+          git commit -m "Update Data" || exit 0
           git push
