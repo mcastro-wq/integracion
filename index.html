@@ -3,169 +3,157 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sincronización MEF - Lambayeque</title>
+    <title>Consulta de Inversiones MEF</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f4f7f6; }
-        .hero-section { background: linear-gradient(135deg, #003366 0%, #004080 100%); color: white; padding: 40px 0; border-bottom: 5px solid #cc0000; }
-        .search-card { border: none; border-radius: 15px; transform: translateY(-30px); }
-        .table-container { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
-        .badge-cui { font-family: monospace; font-size: 1rem; }
-        .status-pill { border-radius: 20px; padding: 5px 15px; font-size: 0.85rem; font-weight: 600; }
+        body { background-color: #f8f9fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .header-bg { background: #003366; color: white; padding: 30px 0; margin-bottom: 30px; border-bottom: 4px solid #d9534f; }
+        .search-box { background: white; border-radius: 10px; padding: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .table-res { background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .status-badge { font-size: 0.75rem; padding: 5px 10px; border-radius: 12px; }
         #loader { display: none; }
     </style>
 </head>
 <body>
 
-<div class="hero-section">
-    <div class="container text-center">
-        <h1 class="fw-extrabold">📊 Dashboard de Inversiones</h1>
-        <p class="lead">Información extraída directamente de los CSV del MEF</p>
-    </div>
+<div class="header-bg text-center">
+    <h2>🔍 Buscador de Inversiones MEF</h2>
+    <p>Consulta integrada de Detalle, Avances y Situación</p>
 </div>
 
 <div class="container">
-    <div class="card search-card shadow-lg p-4">
+    <div class="search-box mb-4">
         <div class="row g-3">
-            <div class="col-md-4">
-                <label class="form-label fw-bold">Buscar por CUI</label>
-                <input type="number" id="cuiInput" class="form-control" placeholder="Ej: 2460241">
+            <div class="col-md-9">
+                <label class="form-label fw-bold">Buscar por CUI o Nombre del Proyecto</label>
+                <input type="text" id="searchInput" class="form-control form-control-lg" placeholder="Ej: 2460241 o 'Mejoramiento de colegio...'">
             </div>
-            <div class="col-md-5">
-                <label class="form-label fw-bold">Nombre del Proyecto</label>
-                <input type="text" id="nombreInput" class="form-control" placeholder="Palabra clave en el nombre...">
-            </div>
-            <div class="col-md-3">
-                <label class="form-label fw-bold">Año de Registro</label>
-                <select id="anioSelect" class="form-select">
-                    <option value="">Todos los años</option>
-                    <option value="2026">2026</option>
-                    <option value="2025">2025</option>
-                    <option value="2024">2024</option>
-                    <option value="2023">2023</option>
-                    <option value="2022">2022</option>
-                    <option value="2021">2021</option>
-                </select>
-            </div>
-            <div class="col-12 mt-4 text-center">
-                <button class="btn btn-primary btn-lg px-5 shadow-sm" onclick="iniciarBusqueda()">
-                    🔍 CONSULTAR BASES DE DATOS
-                </button>
+            <div class="col-md-3 d-flex align-items-end">
+                <button class="btn btn-primary w-100 btn-lg" onclick="realizarBusqueda()">BUSCAR</button>
             </div>
         </div>
     </div>
 
-    <div id="loader" class="text-center my-4">
-        <div class="spinner-border text-danger" role="status"></div>
-        <p class="mt-2 text-muted fw-bold">Escaneando archivos JSON locales...</p>
+    <div id="loader" class="text-center my-5">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="mt-2 text-muted">Consultando bases de datos locales...</p>
     </div>
 
-    <div class="table-container mb-5 d-none" id="tablaResultados">
-        <h4 class="mb-4 fw-bold">Resultados de Inversión</h4>
-        <div class="table-responsive">
-            <table class="table table-hover align-middle">
-                <thead class="table-dark">
-                    <tr>
-                        <th>CUI</th>
-                        <th>Nombre de Inversión</th>
-                        <th>Costo Actualizado</th>
-                        <th>Avance Físico</th>
-                        <th>Estado</th>
-                        <th>Acción</th>
-                    </tr>
-                </thead>
-                <tbody id="listaInversiones">
-                    </tbody>
-            </table>
-        </div>
+    <div id="resultadosContenedor" class="table-res d-none">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-dark">
+                <tr>
+                    <th>CUI / SNIP</th>
+                    <th>Inversión / Entidad</th>
+                    <th>Sector</th>
+                    <th>Costo Act.</th>
+                    <th>Avance</th>
+                    <th>Estado</th>
+                </tr>
+            </thead>
+            <tbody id="tablaBody"></tbody>
+        </table>
     </div>
 </div>
 
 <script>
-    // Ajusta esto según cuántas partes genere tu Action (aprox 25 para Detalle)
-    const MAX_PARTES = 30; 
+    // Configuración: Define cuántas partes tienes en tu repo (data_detalle_parte_1...X)
+    const TOTAL_PARTES = 30; 
 
-    async function iniciarBusqueda() {
-        const cui = document.getElementById('cuiInput').value.trim();
+    // Al cargar la página, mostramos los primeros 100 registros (Precarga)
+    window.onload = () => realizarBusqueda(true);
+
+    async function realizarBusqueda(esPrecarga = false) {
+        const query = document.getElementById('searchInput').value.trim().toUpperCase();
         const loader = document.getElementById('loader');
-        const lista = document.getElementById('listaInversiones');
-        
-        if(!cui) return alert("Ingrese un CUI");
+        const contenedor = document.getElementById('resultadosContenedor');
+        const body = document.getElementById('tablaBody');
 
         loader.style.display = "block";
-        lista.innerHTML = "";
+        if(!esPrecarga) contenedor.classList.add('d-none');
+        body.innerHTML = "";
+
+        let resultados = [];
+        const limiteRegistros = esPrecarga ? 100 : 500; // Si es búsqueda manual, permitimos más resultados
 
         try {
-            let infoPrincipal = null;
-            let infoF12b = null;
-            let infoSituacion = null;
-
-            // 1. BUSCAR EN DETALLE (Archivo Principal)
-            for (let i = 1; i <= MAX_PARTES; i++) {
+            for (let i = 1; i <= TOTAL_PARTES; i++) {
                 const res = await fetch(`data_detalle_parte_${i}.json`);
                 if (!res.ok) break;
                 const data = await res.json();
-                infoPrincipal = data.find(p => p.CODIGO_UNICO == cui);
-                if (infoPrincipal) break;
-            }
 
-            if (infoPrincipal) {
-                // 2. BUSCAR CRUCE EN F12B (Avances)
-                for (let i = 1; i <= 10; i++) {
-                    const res = await fetch(`data_f12b_parte_${i}.json`);
-                    if (!res.ok) break;
-                    const data = await res.json();
-                    infoF12b = data.find(p => p.CODIGO_UNICO == cui);
-                    if (infoF12b) break;
+                let filtrados = [];
+                if (esPrecarga || query === "") {
+                    filtrados = data; // En precarga tomamos todo hasta completar el límite
+                } else {
+                    // Búsqueda inteligente: ¿Es número (CUI) o es texto (Nombre)?
+                    const esNumero = !isNaN(query);
+                    filtrados = data.filter(item => {
+                        if (esNumero) {
+                            return item.CODIGO_UNICO == query || item.COD_SNIP == query;
+                        } else {
+                            return item.NOMBRE_INVERSION && item.NOMBRE_INVERSION.includes(query);
+                        }
+                    });
                 }
 
-                // 3. BUSCAR CRUCE EN SITUACION (Problemas)
-                for (let i = 1; i <= 5; i++) {
-                    const res = await fetch(`data_situacion_parte_${i}.json`);
-                    if (!res.ok) break;
-                    const data = await res.json();
-                    infoSituacion = data.find(p => p.CODIGO_UNICO == cui);
-                    if (infoSituacion) break;
-                }
+                resultados = [...resultados, ...filtrados];
 
-                renderizarResultado(infoPrincipal, infoF12b, infoSituacion);
-            } else {
-                alert("CUI no encontrado en la base de datos.");
+                // Detenerse si ya alcanzamos el límite de visualización
+                if (resultados.length >= limiteRegistros) {
+                    resultados = resultados.slice(0, limiteRegistros);
+                    break;
+                }
+                
+                // Si buscamos un CUI específico y lo encontramos, paramos
+                if (!esPrecarga && !isNaN(query) && resultados.length > 0) break;
             }
+
+            renderizarResultados(resultados);
         } catch (e) {
-            console.error(e);
+            console.error("Error cargando datos:", e);
+            body.innerHTML = `<tr><td colspan="6" class="text-center text-danger">Error al cargar archivos JSON locales.</td></tr>`;
         } finally {
             loader.style.display = "none";
+            contenedor.classList.remove('d-none');
         }
     }
 
-    function renderizarResultado(p, f, s) {
-        document.getElementById('tablaResultados').classList.remove('d-none');
-        const lista = document.getElementById('listaInversiones');
-        
-        lista.innerHTML = `
-            <tr>
-                <td><span class="badge bg-secondary">${p.CODIGO_UNICO}</span></td>
-                <td class="small">
-                    <div class="fw-bold">${p.NOMBRE_INVERSION}</div>
-                    <div class="text-danger mt-1 small italic">
-                        ${s ? '⚠️ ' + s.DESCRIPCION_SITUACION : '✅ Sin problemas registrados'}
-                    </div>
-                </td>
-                <td class="text-success fw-bold">S/ ${parseFloat(p.COSTO_ACTUALIZADO).toLocaleString()}</td>
-                <td>
-                    <div class="progress" style="height: 12px;">
-                        <div class="progress-bar bg-success" style="width: ${f ? f.AVANCE_FISICO_REAL : 0}%"></div>
-                    </div>
-                    <small>${f ? f.AVANCE_FISICO_REAL : 0}% Real</small>
-                </td>
-                <td><span class="badge bg-info text-dark">${p.ESTADO_NOMBRE}</span></td>
-                <td>
-                    <button class="btn btn-sm btn-dark" onclick="verDetalle('${p.CODIGO_UNICO}')">Info</button>
-                </td>
-            </tr>
-        `;
+    function renderizarResultados(lista) {
+        const body = document.getElementById('tablaBody');
+        if (lista.length === 0) {
+            body.innerHTML = `<tr><td colspan="6" class="text-center p-4">No se encontraron resultados para su búsqueda.</td></tr>`;
+            return;
+        }
+
+        lista.forEach(p => {
+            const fila = `
+                <tr>
+                    <td>
+                        <div class="fw-bold text-primary">${p.CODIGO_UNICO || '---'}</div>
+                        <small class="text-muted">SNIP: ${p.COD_SNIP || 'N/A'}</small>
+                    </td>
+                    <td>
+                        <div style="max-width: 400px; font-size: 0.85rem;" class="fw-semibold">${p.NOMBRE_INVERSION}</div>
+                        <div class="text-muted small" style="font-size: 0.75rem;">🏛️ ${p.ENTIDAD || 'SIN ENTIDAD'}</div>
+                    </td>
+                    <td><span class="small">${p.SECTOR || '---'}</span></td>
+                    <td class="fw-bold text-dark">S/ ${parseFloat(p.COSTO_ACTUALIZADO || 0).toLocaleString()}</td>
+                    <td>
+                        <div class="progress" style="height: 8px; width: 80px;">
+                            <div class="progress-bar bg-success" style="width: ${p.AVANCE_FISICO || 0}%"></div>
+                        </div>
+                        <small>${p.AVANCE_FISICO || 0}%</small>
+                    </td>
+                    <td>
+                        <span class="status-badge ${p.ESTADO_NOMBRE === 'Activo' ? 'bg-success text-white' : 'bg-warning text-dark'}">
+                            ${p.ESTADO_NOMBRE || 'Desconocido'}
+                        </span>
+                    </td>
+                </tr>
+            `;
+            body.insertAdjacentHTML('beforeend', fila);
+        });
     }
 </script>
 
