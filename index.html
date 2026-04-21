@@ -2,81 +2,102 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Consulta Directa MEF</title>
+    <title>Consulta CUI Directa - MEF</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .result-card { border-left: 5px solid #0d6efd; transition: all 0.3s ease; }
+        .loading-overlay { display: none; color: #0d6efd; }
+    </style>
 </head>
-<body class="bg-light p-5">
-    <div class="container bg-white p-4 shadow rounded" style="max-width: 600px;">
-        <h4 class="mb-4">🔍 Buscador Directo MEF (Lambayeque)</h4>
+<body class="bg-light">
+
+<div class="container py-5" style="max-width: 700px;">
+    <div class="card shadow border-0 p-4">
+        <h3 class="fw-bold mb-4">🔎 Buscador de Inversiones (Directo MEF)</h3>
         
         <div class="input-group mb-3">
-            <input type="text" id="cuiInput" class="form-control" placeholder="Ingrese CUI (ej. 2199528)">
-            <button class="btn btn-primary" onclick="buscarCUI()">Buscar</button>
+            <input type="text" id="cuiInput" class="form-control form-control-lg" placeholder="Ingrese el CUI (ej. 2199528)">
+            <button class="btn btn-primary px-4" onclick="ejecutarConsulta()">Buscar</button>
         </div>
 
-        <div id="loader" class="text-center d-none">
-            <div class="spinner-border spinner-border-sm text-primary"></div> Consultando MEF...
+        <div id="loader" class="text-center my-3 loading-overlay">
+            <div class="spinner-border spinner-border-sm"></div> Consultando base de datos del MEF...
         </div>
 
-        <div id="resultado" class="mt-4"></div>
+        <div id="resultado" class="mt-4">
+            </div>
     </div>
+</div>
 
 <script>
-async function buscarCUI() {
+async function ejecutarConsulta() {
     const cui = document.getElementById('cuiInput').value.trim();
     const resDiv = document.getElementById('resultado');
     const loader = document.getElementById('loader');
 
     if (!cui) return;
     
-    loader.classList.remove('d-none');
+    loader.style.display = "block";
     resDiv.innerHTML = "";
 
-    // Tus IDs de recursos
+    // IDs de tus recursos
     const idDetalle = "f9cc4ba0-931a-4b70-86c9-eacbd8c68596";
     const idSituacion = "2c20b8e2-7bd9-41ba-8239-8f8c9571935a";
 
-    // SQL dinámico: buscamos el CUI exacto
-    const sql = `SELECT * FROM "${idDetalle}" WHERE "CODIGO_UNICO" = '${cui}'`;
-    const sqlSit = `SELECT * FROM "${idSituacion}" WHERE "CODIGO_UNICO" = '${cui}'`;
+    // SQL exacto usando CODIGO_UNICO
+    const sqlDetalle = `SELECT * FROM "${idDetalle}" WHERE "CODIGO_UNICO" = '${cui}'`;
+    const sqlSituacion = `SELECT * FROM "${idSituacion}" WHERE "COD_UNICO" = '${cui}' OR "CODIGO_UNICO" = '${cui}'`;
 
-    // Usamos un proxy para evitar el bloqueo de seguridad (CORS)
+    // Proxy para saltar el bloqueo CORS
     const proxy = "https://corsproxy.io/?";
     const baseUrl = "https://api.datosabiertos.mef.gob.pe/DatosAbiertos/v1/datastore_search_sql?sql=";
 
     try {
-        // Consultamos Detalle
-        const resp = await fetch(proxy + encodeURIComponent(baseUrl + sql));
-        const data = await resp.json();
+        // 1. Consultamos el Detalle del Proyecto
+        const respDet = await fetch(proxy + encodeURIComponent(baseUrl + sqlDetalle));
+        const dataDet = await respDet.json();
 
-        if (data.success && data.result.records.length > 0) {
-            const p = data.result.records[0];
+        if (dataDet.success && dataDet.result.records.length > 0) {
+            const p = dataDet.result.records[0];
 
-            // Consultamos Situación
-            const resp2 = await fetch(proxy + encodeURIComponent(baseUrl + sqlSit));
-            const data2 = await resp2.json();
-            const s = data2.result.records[0];
+            // 2. Consultamos la Situación (en paralelo)
+            const respSit = await fetch(proxy + encodeURIComponent(baseUrl + sqlSituacion));
+            const dataSit = await respSit.json();
+            const s = dataSit.result.records[0];
 
             resDiv.innerHTML = `
-                <div class="card border-primary shadow-sm">
-                    <div class="card-body">
-                        <h5 class="card-title text-primary">${p.NOMBRE_INVERSION}</h5>
-                        <p class="card-text"><strong>CUI:</strong> ${p.CODIGO_UNICO}</p>
-                        <p class="card-text"><strong>Costo Actualizado:</strong> S/ ${parseFloat(p.COSTO_ACTUALIZADO).toLocaleString()}</p>
-                        <hr>
-                        <h6 class="text-danger">⚠️ Situación:</h6>
-                        <p class="small text-muted">${s ? s.DESCRIPCION_SITUACION : 'No registra problemas en la API.'}</p>
+                <div class="card result-card shadow-sm p-3">
+                    <h5 class="text-primary fw-bold">${p.NOMBRE_INVERSION || 'Sin nombre'}</h5>
+                    <div class="row mt-3">
+                        <div class="col-6">
+                            <small class="text-muted d-block">CUI</small>
+                            <strong>${p.CODIGO_UNICO}</strong>
+                        </div>
+                        <div class="col-6 text-end">
+                            <small class="text-muted d-block">Costo Actualizado</small>
+                            <strong>S/ ${parseFloat(p.COSTO_ACTUALIZADO || 0).toLocaleString()}</strong>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="mt-2">
+                        <h6 class="fw-bold text-danger">⚠️ Estado Situacional:</h6>
+                        <p class="small mb-0">${s ? s.DESCRIPCION_SITUACION : 'No se encontraron problemáticas registradas para este CUI.'}</p>
+                    </div>
+                    <div class="mt-3">
+                        <small class="text-muted">Sector: ${p.SECTOR_NOMBRE || 'No especificado'}</small>
                     </div>
                 </div>`;
         } else {
-            resDiv.innerHTML = `<div class="alert alert-warning">No se encontró el CUI ${cui} en el MEF.</div>`;
+            resDiv.innerHTML = `<div class="alert alert-warning">El CUI <b>${cui}</b> no existe en la base de datos de Detalle de Inversiones.</div>`;
         }
-    } catch (e) {
-        resDiv.innerHTML = `<div class="alert alert-danger">Error: No se pudo conectar con el MEF. Intente de nuevo.</div>`;
+    } catch (error) {
+        console.error(error);
+        resDiv.innerHTML = `<div class="alert alert-danger">Error de conexión. Es posible que el servicio del MEF esté saturado.</div>`;
     } finally {
-        loader.classList.add('d-none');
+        loader.style.display = "none";
     }
 }
 </script>
+
 </body>
 </html>
