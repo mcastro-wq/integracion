@@ -2,38 +2,53 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Buscador Lambayeque</title>
+    <title>Buscador Fragmentado MEF</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
-<body class="bg-light p-5">
-    <div class="container bg-white p-4 shadow rounded">
-        <h3>🔎 Buscador Lambayeque (Datos Locales)</h3>
-        <input type="text" id="cui" class="form-control mb-2" placeholder="Ingrese CUI">
-        <button class="btn btn-primary w-100" onclick="buscar()">BUSCAR</button>
+<body class="bg-light p-4">
+    <div class="container bg-white shadow p-4 rounded" style="max-width: 600px;">
+        <h4 class="mb-4 text-center">🔎 Buscador de CUI (Bases Particionadas)</h4>
+        <input type="number" id="cui" class="form-control mb-3" placeholder="Ingrese CUI">
+        <button class="btn btn-primary w-100" onclick="buscarEnPartes()">BUSCAR PROYECTO</button>
+        <div id="loader" class="text-center mt-3 d-none">Revisando archivos...</div>
         <div id="res" class="mt-4"></div>
     </div>
 
     <script>
-        async function buscar() {
+        async function buscarEnPartes() {
             const cui = document.getElementById('cui').value;
-            const div = document.getElementById('res');
-            div.innerHTML = "Buscando...";
+            const resDiv = document.getElementById('res');
+            const loader = document.getElementById('loader');
             
-            try {
-                // Cargamos tus JSON propios
-                const resp = await fetch('data_detalle.json');
-                const data = await resp.json();
-                const proy = data.find(x => x.CODIGO_UNICO == cui);
+            resDiv.innerHTML = "";
+            loader.classList.remove('d-none');
 
-                if(proy) {
-                    div.innerHTML = `<div class="alert alert-success">
-                        <h5>${proy.NOMBRE_INVERSION}</h5>
-                        <p>Costo: S/ ${proy.COSTO_ACTUALIZADO}</p>
-                    </div>`;
-                } else {
-                    div.innerHTML = "No encontrado en Lambayeque.";
-                }
-            } catch(e) { div.innerHTML = "Error cargando datos locales."; }
+            // Lista de archivos generados por el script de Python
+            const archivos = ['data_parte_1.json', 'data_parte_2.json', 'data_parte_3.json'];
+            let encontrado = false;
+
+            for (let archivo of archivos) {
+                try {
+                    const resp = await fetch(archivo);
+                    if (!resp.ok) continue;
+                    const data = await resp.json();
+                    const p = data.find(x => x.CODIGO_UNICO == cui);
+
+                    if (p) {
+                        resDiv.innerHTML = `
+                            <div class="card border-success p-3">
+                                <h6 class="text-success fw-bold">PROYECTO ENCONTRADO</h6>
+                                <p class="mb-1"><strong>Nombre:</strong> ${p.NOMBRE_INVERSION}</p>
+                                <p class="mb-0"><strong>Costo:</strong> S/ ${parseFloat(p.COSTO_ACTUALIZADO).toLocaleString()}</p>
+                            </div>`;
+                        encontrado = true;
+                        break; // Detener búsqueda si ya se encontró
+                    }
+                } catch (e) { console.error("Error en " + archivo); }
+            }
+
+            if (!encontrado) resDiv.innerHTML = "<div class='alert alert-warning'>CUI no encontrado en ninguna de las bases.</div>";
+            loader.classList.add('d-none');
         }
     </script>
 </body>
