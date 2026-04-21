@@ -2,145 +2,84 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Regional Lambayeque</title>
+    <title>Buscador MEF en Tiempo Real</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body { background-color: #f4f7f6; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .card { border: none; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .table-container { background: white; padding: 20px; border-radius: 15px; }
-        .badge-estado { padding: 5px 10px; border-radius: 20px; font-size: 0.85em; }
-    </style>
 </head>
-<body>
+<body class="bg-light">
 
-<div class="container-fluid py-4">
-    <div class="row mb-4">
-        <div class="col">
-            <h2 class="fw-bold">📊 Seguimiento de Inversiones - Lambayeque</h2>
-            <p class="text-muted">Datos actualizados vía API MEF</p>
-        </div>
-        <div class="col-md-4">
-            <input type="text" id="inputBusqueda" class="form-control form-control-lg shadow-sm" 
-                   placeholder="Buscar por CUI o Nombre..." onkeyup="buscarProyecto()">
-        </div>
-    </div>
-
-    <div class="table-container shadow-sm">
-        <table class="table table-hover align-middle">
-            <thead class="table-light">
-                <tr>
-                    <th>CUI</th>
-                    <th>Inversión</th>
-                    <th>Estado</th>
-                    <th>PIM 2026</th>
-                    <th>Acción</th>
-                </tr>
-            </thead>
-            <tbody id="tablaBody">
-                </tbody>
-        </table>
-    </div>
-</div>
-
-<div class="modal fade" id="detalleModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title fw-bold" id="modalTitulo">Detalle del Proyecto</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body" id="modalContenido">
-                </div>
-        </div>
-    </div>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-    let dbDetalle = [];
-    let dbSituacion = [];
-    let db12b = [];
-
-    async function cargarDatos() {
-        try {
-            // Cargamos los 3 archivos generados por el scraper de la API
-            const [resDet, resSit, res12b] = await Promise.all([
-                fetch('data_detalle.json'),
-                fetch('data_situacion.json'),
-                fetch('data_f12b.json')
-            ]);
-
-            dbDetalle = await resDet.json();
-            dbSituacion = await resSit.json();
-            db12b = await res12b.json();
-
-            renderizarTabla(dbDetalle);
-        } catch (error) {
-            console.error("Error cargando archivos JSON:", error);
-        }
-    }
-
-    function renderizarTabla(datos) {
-        const tbody = document.getElementById('tablaBody');
-        tbody.innerHTML = datos.map(p => `
-            <tr>
-                <td class="fw-bold">${p.CODIGO_UNICO || p.CODIGO_INVERSION}</td>
-                <td style="max-width: 400px;">${p.NOMBRE_INVERSION || p.INVERSION_NOMBRE}</td>
-                <td><span class="badge bg-info text-dark badge-estado">${p.ESTADO || 'En ejecución'}</span></td>
-                <td>S/ ${parseFloat(p.PIM || 0).toLocaleString()}</td>
-                <td>
-                    <button class="btn btn-sm btn-primary" onclick="verDetalle('${p.CODIGO_UNICO || p.CODIGO_INVERSION}')">
-                        Ver Cruce
-                    </button>
-                </td>
-            </tr>
-        `).join('');
-    }
-
-    function buscarProyecto() {
-        const query = document.getElementById('inputBusqueda').value.toUpperCase();
-        const filtrados = dbDetalle.filter(p => 
-            (p.CODIGO_UNICO && p.CODIGO_UNICO.toString().includes(query)) || 
-            (p.NOMBRE_INVERSION && p.NOMBRE_INVERSION.toUpperCase().includes(query))
-        );
-        renderizarTabla(filtrados);
-    }
-
-    function verDetalle(cui) {
-        // CRUZAMOS LOS DATOS AQUÍ
-        const det = dbDetalle.find(x => (x.CODIGO_UNICO || x.CODIGO_INVERSION) == cui);
-        const sit = dbSituacion.find(x => (x.CODIGO_UNICO || x.CODIGO_INVERSION) == cui);
-        const f12 = db12b.find(x => (x.CODIGO_UNICO || x.CODIGO_INVERSION) == cui);
-
-        const modal = new bootstrap.Modal(document.getElementById('detalleModal'));
-        document.getElementById('modalTitulo').innerText = "CUI: " + cui;
+<div class="container py-5">
+    <div class="card shadow-lg border-0 p-4">
+        <h2 class="fw-bold mb-4">🔍 Consulta Directa MEF - Lambayeque</h2>
         
-        document.getElementById('modalContenido').innerHTML = `
-            <div class="mb-3">
-                <h6><strong>Nombre:</strong></h6>
-                <p>${det ? (det.NOMBRE_INVERSION || det.INVERSION_NOMBRE) : 'No disponible'}</p>
+        <div class="input-group mb-3">
+            <input type="text" id="busqueda" class="form-control form-control-lg" placeholder="Ingrese CUI o Nombre del proyecto...">
+            <button class="btn btn-primary px-4" onclick="buscarEnMEF()">Buscar</button>
+        </div>
+
+        <div id="loader" class="text-center d-none my-4">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p>Consultando base de datos del MEF...</p>
+        </div>
+
+        <div id="resultados" class="mt-4">
             </div>
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="card bg-light p-3">
-                        <h6><strong>Estado Situacional:</strong></h6>
-                        <p class="text-danger">${sit ? sit.DESCRIPCION_ESTADO : 'Sin reporte de problemática'}</p>
-                    </div>
+    </div>
+</div>
+
+<script>
+async function buscarEnMEF() {
+    const query = document.getElementById('busqueda').value.trim();
+    const loader = document.getElementById('loader');
+    const resultados = document.getElementById('resultados');
+
+    if (!query) return alert("Escribe un CUI o nombre");
+
+    loader.classList.remove('d-none');
+    resultados.innerHTML = "";
+
+    // IDs de los recursos del MEF
+    const resDetalle = "f9cc4ba0-931a-4b70-86c9-eacbd8c68596";
+    const resSituacion = "2c20b8e2-7bd9-41ba-8239-8f8c9571935a";
+
+    // SQL: Buscamos por CUI (CODIGO_UNICO) o por Nombre
+    // Filtramos para que siempre sea de Lambayeque
+    const sql = `SELECT * FROM "${resDetalle}" WHERE ("CODIGO_UNICO" = '${query}' OR "NOMBRE_INVERSION" LIKE '%${query.toUpperCase()}%') AND "DEPARTAMENTO" LIKE '%LAMBAYEQUE%' LIMIT 5`;
+
+    try {
+        const response = await fetch(`https://api.datosabiertos.mef.gob.pe/DatosAbiertos/v1/datastore_search_sql?sql=${encodeURIComponent(sql)}`);
+        const data = await response.json();
+
+        if (data.success && data.result.records.length > 0) {
+            const p = data.result.records[0]; // Tomamos el primer resultado
+            
+            // Ahora buscamos su situación problemática en el otro recurso usando el CUI encontrado
+            const cuiEncontrado = p.CODIGO_UNICO;
+            const sqlSit = `SELECT * FROM "${resSituacion}" WHERE "CODIGO_UNICO" = '${cuiEncontrado}'`;
+            const resSit = await fetch(`https://api.datosabiertos.mef.gob.pe/DatosAbiertos/v1/datastore_search_sql?sql=${encodeURIComponent(sqlSit)}`);
+            const dataSit = await resSit.json();
+            const s = dataSit.result.records[0];
+
+            resultados.innerHTML = `
+                <div class="alert alert-success">
+                    <h4>${p.NOMBRE_INVERSION}</h4>
+                    <p class="mb-1"><strong>CUI:</strong> ${p.CODIGO_UNICO}</p>
+                    <p class="mb-1"><strong>Costo:</strong> S/ ${parseFloat(p.COSTO_ACTUALIZADO).toLocaleString()}</p>
+                    <p class="mb-1"><strong>Avance Financiero:</strong> ${p.AVANCE_FINANCIERO}%</p>
+                    <hr>
+                    <h5>⚠️ Situación Problemática:</h5>
+                    <p class="text-danger">${s ? s.DESCRIPCION_SITUACION : 'No se reportan problemas registrados en la API.'}</p>
                 </div>
-                <div class="col-md-6">
-                    <div class="card bg-light p-3">
-                        <h6><strong>Formato 12B (Avance):</strong></h6>
-                        <p class="text-success">Acción: ${f12 ? f12.ACCION_REALIZAR : 'Continuar ejecución'}</p>
-                    </div>
-                </div>
-            </div>
-        `;
-        modal.show();
+            `;
+        } else {
+            resultados.innerHTML = `<div class="alert alert-warning">No se encontraron proyectos en Lambayeque con ese criterio.</div>`;
+        }
+    } catch (error) {
+        console.error(error);
+        resultados.innerHTML = `<div class="alert alert-danger">Error al conectar con la API del MEF.</div>`;
+    } finally {
+        loader.classList.add('d-none');
     }
-
-    window.onload = cargarDatos;
+}
 </script>
-
 </body>
 </html>
