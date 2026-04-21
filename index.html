@@ -3,78 +3,76 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Consulta de Inversiones MEF</title>
+    <title>Dashboard de Inversiones MEF - Reporte Detallado</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { background-color: #f8f9fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .header-bg { background: #003366; color: white; padding: 30px 0; margin-bottom: 30px; border-bottom: 4px solid #d9534f; }
-        .search-box { background: white; border-radius: 10px; padding: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .table-res { background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        .status-badge { font-size: 0.75rem; padding: 5px 10px; border-radius: 12px; }
-        #loader { display: none; }
+        body { background-color: #f4f7f6; font-family: 'Inter', sans-serif; }
+        .header-section { background: linear-gradient(135deg, #1a2a6c, #b21f1f); color: white; padding: 40px 0; border-bottom: 5px solid #fdbb2d; }
+        .card-stats { border: none; border-radius: 12px; transition: transform 0.2s; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        .table-container { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        .badge-geo { background-color: #e9ecef; color: #495057; font-size: 0.7rem; font-weight: 600; margin-right: 5px; }
+        .financial-val { font-family: 'Courier New', monospace; font-weight: bold; }
+        .detail-row { background-color: #fdfdfe; display: none; }
+        .progress { height: 10px; border-radius: 5px; }
     </style>
 </head>
 <body>
 
-<div class="header-bg text-center">
-    <h2>🔍 Buscador de Inversiones MEF</h2>
-    <p>Consulta integrada de Detalle, Avances y Situación</p>
+<div class="header-section text-center">
+    <h1>📊 Sistema de Seguimiento de Inversiones</h1>
+    <p>Reporte Integrado: Formulación, Ejecución y Financiamiento</p>
 </div>
 
-<div class="container">
-    <div class="search-box mb-4">
+<div class="container mt-n4">
+    <div class="card card-stats p-4 mb-4">
         <div class="row g-3">
-            <div class="col-md-9">
-                <label class="form-label fw-bold">Buscar por CUI o Nombre del Proyecto</label>
-                <input type="text" id="searchInput" class="form-control form-control-lg" placeholder="Ej: 2460241 o 'Mejoramiento de colegio...'">
+            <div class="col-md-10">
+                <input type="text" id="searchInput" class="form-control form-control-lg" placeholder="Buscar por CUI, Nombre o Ubicación (Ej: Lambayeque)...">
             </div>
-            <div class="col-md-3 d-flex align-items-end">
-                <button class="btn btn-primary w-100 btn-lg" onclick="realizarBusqueda()">BUSCAR</button>
+            <div class="col-md-2">
+                <button class="btn btn-dark btn-lg w-100" onclick="realizarBusqueda()">FILTRAR</button>
             </div>
         </div>
     </div>
 
-    <div id="loader" class="text-center my-5">
-        <div class="spinner-border text-primary" role="status"></div>
-        <p class="mt-2 text-muted">Consultando bases de datos locales...</p>
+    <div id="loader" class="text-center d-none my-5">
+        <div class="spinner-grow text-danger" role="status"></div>
+        <p>Procesando registros del MEF...</p>
     </div>
 
-    <div id="resultadosContenedor" class="table-res d-none">
-        <table class="table table-hover align-middle mb-0">
-            <thead class="table-dark">
-                <tr>
-                    <th>CUI / SNIP</th>
-                    <th>Inversión / Entidad</th>
-                    <th>Sector</th>
-                    <th>Costo Act.</th>
-                    <th>Avance</th>
-                    <th>Estado</th>
-                </tr>
-            </thead>
-            <tbody id="tablaBody"></tbody>
-        </table>
+    <div class="table-container">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Identificación</th>
+                        <th>Inversión / Localización</th>
+                        <th>Financiamiento (S/)</th>
+                        <th>Avances</th>
+                        <th>Cronograma</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaInversiones"></tbody>
+            </table>
+        </div>
     </div>
 </div>
 
 <script>
-    // Configuración: Define cuántas partes tienes en tu repo (data_detalle_parte_1...X)
-    const TOTAL_PARTES = 30; 
+    const TOTAL_PARTES = 30;
 
-    // Al cargar la página, mostramos los primeros 100 registros (Precarga)
-    window.onload = () => realizarBusqueda(true);
+    window.onload = () => realizarBusqueda();
 
-    async function realizarBusqueda(esPrecarga = false) {
+    async function realizarBusqueda() {
         const query = document.getElementById('searchInput').value.trim().toUpperCase();
         const loader = document.getElementById('loader');
-        const contenedor = document.getElementById('resultadosContenedor');
-        const body = document.getElementById('tablaBody');
-
-        loader.style.display = "block";
-        if(!esPrecarga) contenedor.classList.add('d-none');
+        const body = document.getElementById('tablaInversiones');
+        
+        loader.classList.remove('d-none');
         body.innerHTML = "";
 
-        let resultados = [];
-        const limiteRegistros = esPrecarga ? 100 : 500; // Si es búsqueda manual, permitimos más resultados
+        let encontrados = [];
 
         try {
             for (let i = 1; i <= TOTAL_PARTES; i++) {
@@ -82,78 +80,95 @@
                 if (!res.ok) break;
                 const data = await res.json();
 
-                let filtrados = [];
-                if (esPrecarga || query === "") {
-                    filtrados = data; // En precarga tomamos todo hasta completar el límite
-                } else {
-                    // Búsqueda inteligente: ¿Es número (CUI) o es texto (Nombre)?
-                    const esNumero = !isNaN(query);
-                    filtrados = data.filter(item => {
-                        if (esNumero) {
-                            return item.CODIGO_UNICO == query || item.COD_SNIP == query;
-                        } else {
-                            return item.NOMBRE_INVERSION && item.NOMBRE_INVERSION.includes(query);
-                        }
-                    });
-                }
+                const filtrados = data.filter(item => {
+                    return !query || 
+                           (item.CODIGO_UNICO && item.CODIGO_UNICO.toString().includes(query)) ||
+                           (item.NOMBRE_INVERSION && item.NOMBRE_INVERSION.includes(query)) ||
+                           (item.DEPARTAMENTO && item.DEPARTAMENTO.includes(query)) ||
+                           (item.ENTIDAD && item.ENTIDAD.includes(query));
+                });
 
-                resultados = [...resultados, ...filtrados];
-
-                // Detenerse si ya alcanzamos el límite de visualización
-                if (resultados.length >= limiteRegistros) {
-                    resultados = resultados.slice(0, limiteRegistros);
-                    break;
-                }
-                
-                // Si buscamos un CUI específico y lo encontramos, paramos
-                if (!esPrecarga && !isNaN(query) && resultados.length > 0) break;
+                encontrados = [...encontrados, ...filtrados];
+                if (encontrados.length >= 100) break;
             }
-
-            renderizarResultados(resultados);
+            renderizar(encontrados);
         } catch (e) {
-            console.error("Error cargando datos:", e);
-            body.innerHTML = `<tr><td colspan="6" class="text-center text-danger">Error al cargar archivos JSON locales.</td></tr>`;
+            body.innerHTML = `<tr><td colspan="6" class="text-center text-danger">Error al cargar datos.</td></tr>`;
         } finally {
-            loader.style.display = "none";
-            contenedor.classList.remove('d-none');
+            loader.classList.add('d-none');
         }
     }
 
-    function renderizarResultados(lista) {
-        const body = document.getElementById('tablaBody');
-        if (lista.length === 0) {
-            body.innerHTML = `<tr><td colspan="6" class="text-center p-4">No se encontraron resultados para su búsqueda.</td></tr>`;
-            return;
-        }
-
-        lista.forEach(p => {
-            const fila = `
+    function renderizar(lista) {
+        const body = document.getElementById('tablaInversiones');
+        lista.forEach((p, index) => {
+            const rowId = `detail-${index}`;
+            const html = `
                 <tr>
                     <td>
-                        <div class="fw-bold text-primary">${p.CODIGO_UNICO || '---'}</div>
-                        <small class="text-muted">SNIP: ${p.COD_SNIP || 'N/A'}</small>
+                        <span class="badge bg-primary mb-1">CUI: ${p.CODIGO_UNICO}</span><br>
+                        <small class="text-muted">SNIP: ${p.CODIGO_SNIP || '---'}</small>
                     </td>
                     <td>
-                        <div style="max-width: 400px; font-size: 0.85rem;" class="fw-semibold">${p.NOMBRE_INVERSION}</div>
-                        <div class="text-muted small" style="font-size: 0.75rem;">🏛️ ${p.ENTIDAD || 'SIN ENTIDAD'}</div>
-                    </td>
-                    <td><span class="small">${p.SECTOR || '---'}</span></td>
-                    <td class="fw-bold text-dark">S/ ${parseFloat(p.COSTO_ACTUALIZADO || 0).toLocaleString()}</td>
-                    <td>
-                        <div class="progress" style="height: 8px; width: 80px;">
-                            <div class="progress-bar bg-success" style="width: ${p.AVANCE_FISICO || 0}%"></div>
+                        <div class="fw-bold" style="max-width: 350px; font-size: 0.85rem;">${p.NOMBRE_INVERSION}</div>
+                        <div class="mt-1">
+                            <span class="badge badge-geo">${p.DEPARTAMENTO}</span>
+                            <span class="badge badge-geo">${p.PROVINCIA}</span>
+                            <span class="badge badge-geo">${p.DISTRITO}</span>
                         </div>
-                        <small>${p.AVANCE_FISICO || 0}%</small>
+                        <small class="text-danger d-block mt-1">🏛️ ${p.ENTIDAD}</small>
+                    </td>
+                    <td class="financial-val small">
+                        PIM: ${parseFloat(p.PIM_ANIO_ACTUAL || 0).toLocaleString()}<br>
+                        <span class="text-success">Dev: ${parseFloat(p.DEV_ANIO_ACTUAL || 0).toLocaleString()}</span><br>
+                        <span class="text-muted">Saldo: ${parseFloat(p.SALDO_EJECUTAR || 0).toLocaleString()}</span>
                     </td>
                     <td>
-                        <span class="status-badge ${p.ESTADO_NOMBRE === 'Activo' ? 'bg-success text-white' : 'bg-warning text-dark'}">
-                            ${p.ESTADO_NOMBRE || 'Desconocido'}
-                        </span>
+                        <div class="small mb-1">Físico: ${p.AVANCE_FISICO || 0}%</div>
+                        <div class="progress">
+                            <div class="progress-bar bg-info" style="width: ${p.AVANCE_FISICO || 0}%"></div>
+                        </div>
+                        <div class="small mt-1 text-muted">Ejecución: ${p.AVANCE_EJECUCION || 0}%</div>
+                    </td>
+                    <td class="small">
+                        Inicio: ${p.FEC_INI_EJECUCION || '---'}<br>
+                        Fin: ${p.FEC_FIN_EJECUCION || '---'}
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="toggleDetail('${rowId}')">Ver más</button>
+                    </td>
+                </tr>
+                <tr id="${rowId}" class="detail-row">
+                    <td colspan="6">
+                        <div class="p-3 border rounded shadow-sm">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <strong>Unidad Formuladora:</strong> ${p.NOMBRE_UF}<br>
+                                    <strong>Tipología:</strong> ${p.DES_TIPOLOGIACarácter || '---'}<br>
+                                    <strong>Modalidad:</strong> ${p.DES_MODALIDAD}
+                                </div>
+                                <div class="col-md-4">
+                                    <strong>Función:</strong> ${p.FUNCION}<br>
+                                    <strong>Programa:</strong> ${p.PROGRAMA}<br>
+                                    <strong>Viabilidad:</strong> ${p.FECHA_VIABILIDAD}
+                                </div>
+                                <div class="col-md-4">
+                                    <strong>Monto Viable:</strong> S/ ${parseFloat(p.MONTO_VIABLE || 0).toLocaleString()}<br>
+                                    <strong>Costo Actualizado:</strong> S/ ${parseFloat(p.COSTO_ACTUALIZADO || 0).toLocaleString()}<br>
+                                    <strong>Habitantes Beneficiados:</strong> ${parseInt(p.NUM_HABITANTES_BENEF || 0).toLocaleString()}
+                                </div>
+                            </div>
+                        </div>
                     </td>
                 </tr>
             `;
-            body.insertAdjacentHTML('beforeend', fila);
+            body.insertAdjacentHTML('beforeend', html);
         });
+    }
+
+    function toggleDetail(id) {
+        const el = document.getElementById(id);
+        el.style.display = (el.style.display === 'table-row') ? 'none' : 'table-row';
     }
 </script>
 
