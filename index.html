@@ -83,85 +83,89 @@
 </div>
 
 <script>
-    // Configuración: Define cuántas partes generó tu script de Python
-    const TOTAL_PARTES = 10; 
+    // Ajusta esto según cuántas partes genere tu Action (aprox 25 para Detalle)
+    const MAX_PARTES = 30; 
 
     async function iniciarBusqueda() {
         const cui = document.getElementById('cuiInput').value.trim();
-        const nombre = document.getElementById('nombreInput').value.trim().toUpperCase();
-        const anio = document.getElementById('anioSelect').value;
         const loader = document.getElementById('loader');
-        const tabla = document.getElementById('tablaResultados');
         const lista = document.getElementById('listaInversiones');
+        
+        if(!cui) return alert("Ingrese un CUI");
 
         loader.style.display = "block";
-        tabla.classList.add('d-none');
         lista.innerHTML = "";
 
-        let resultadosEncontrados = [];
+        try {
+            let infoPrincipal = null;
+            let infoF12b = null;
+            let infoSituacion = null;
 
-        // Buscador secuencial en los archivos JSON locales generados por el Action
-        for (let i = 1; i <= TOTAL_PARTES; i++) {
-            try {
-                const response = await fetch(`data_detalle_parte_${i}.json`);
-                if (!response.ok) break; // Si no existe el archivo, termina
-                
-                const data = await response.json();
-                
-                // Aplicar filtros
-                const filtrados = data.filter(p => {
-                    const matchCui = cui ? p.CODIGO_UNICO == cui : true;
-                    const matchNombre = nombre ? (p.NOMBRE_INVERSION && p.NOMBRE_INVERSION.includes(nombre)) : true;
-                    // El año se extrae de la fecha de registro o viabilidad del CSV
-                    const matchAnio = anio ? (p.FECHA_VIABILIDAD && p.FECHA_VIABILIDAD.includes(anio)) : true;
-                    return matchCui && matchNombre && matchAnio;
-                });
-
-                resultadosEncontrados = [...resultadosEncontrados, ...filtrados];
-                
-                // Si buscamos por CUI y lo encontramos, no necesitamos leer más partes
-                if (cui && resultadosEncontrados.length > 0) break;
-
-            } catch (error) {
-                console.error(`Error leyendo parte ${i}:`, error);
+            // 1. BUSCAR EN DETALLE (Archivo Principal)
+            for (let i = 1; i <= MAX_PARTES; i++) {
+                const res = await fetch(`data_detalle_parte_${i}.json`);
+                if (!res.ok) break;
+                const data = await res.json();
+                infoPrincipal = data.find(p => p.CODIGO_UNICO == cui);
+                if (infoPrincipal) break;
             }
-        }
 
-        renderTabla(resultadosEncontrados);
-        loader.style.display = "none";
+            if (infoPrincipal) {
+                // 2. BUSCAR CRUCE EN F12B (Avances)
+                for (let i = 1; i <= 10; i++) {
+                    const res = await fetch(`data_f12b_parte_${i}.json`);
+                    if (!res.ok) break;
+                    const data = await res.json();
+                    infoF12b = data.find(p => p.CODIGO_UNICO == cui);
+                    if (infoF12b) break;
+                }
+
+                // 3. BUSCAR CRUCE EN SITUACION (Problemas)
+                for (let i = 1; i <= 5; i++) {
+                    const res = await fetch(`data_situacion_parte_${i}.json`);
+                    if (!res.ok) break;
+                    const data = await res.json();
+                    infoSituacion = data.find(p => p.CODIGO_UNICO == cui);
+                    if (infoSituacion) break;
+                }
+
+                renderizarResultado(infoPrincipal, infoF12b, infoSituacion);
+            } else {
+                alert("CUI no encontrado en la base de datos.");
+            }
+        } catch (e) {
+            console.error(e);
+        } finally {
+            loader.style.display = "none";
+        }
     }
 
-    function renderTabla(datos) {
-        const tabla = document.getElementById('tablaResultados');
+    function renderizarResultado(p, f, s) {
+        document.getElementById('tablaResultados').classList.remove('d-none');
         const lista = document.getElementById('listaInversiones');
-
-        if (datos.length === 0) {
-            alert("No se encontraron registros con esos filtros.");
-            return;
-        }
-
-        datos.forEach(p => {
-            const fila = `
-                <tr>
-                    <td><span class="badge bg-secondary badge-cui">${p.CODIGO_UNICO}</span></td>
-                    <td class="small fw-bold">${p.NOMBRE_INVERSION || 'SIN DATOS'}</td>
-                    <td class="text-success fw-bold">S/ ${parseFloat(p.COSTO_ACTUALIZADO || 0).toLocaleString()}</td>
-                    <td>
-                        <div class="progress" style="height: 10px;">
-                            <div class="progress-bar bg-success" style="width: ${p.AVANCE_FISICO || 0}%"></div>
-                        </div>
-                        <small>${p.AVANCE_FISICO || 0}%</small>
-                    </td>
-                    <td><span class="status-pill bg-info text-dark">${p.ESTADO_NOMBRE || 'Activo'}</span></td>
-                    <td>
-                        <button class="btn btn-sm btn-outline-dark" onclick="alert('CUI: ${p.CODIGO_UNICO}\\nCosto: S/ ${p.COSTO_ACTUALIZADO}')">Ver más</button>
-                    </td>
-                </tr>
-            `;
-            lista.innerHTML += fila;
-        });
-
-        tabla.classList.remove('d-none');
+        
+        lista.innerHTML = `
+            <tr>
+                <td><span class="badge bg-secondary">${p.CODIGO_UNICO}</span></td>
+                <td class="small">
+                    <div class="fw-bold">${p.NOMBRE_INVERSION}</div>
+                    <div class="text-danger mt-1 small italic">
+                        ${s ? '⚠️ ' + s.DESCRIPCION_SITUACION : '✅ Sin problemas registrados'}
+                    </div>
+                </td>
+                <td class="text-success fw-bold">S/ ${parseFloat(p.COSTO_ACTUALIZADO).toLocaleString()}</td>
+                <td>
+                    <div class="progress" style="height: 12px;">
+                        <div class="progress-bar bg-success" style="width: ${f ? f.AVANCE_FISICO_REAL : 0}%"></div>
+                    </div>
+                    <small>${f ? f.AVANCE_FISICO_REAL : 0}% Real</small>
+                </td>
+                <td><span class="badge bg-info text-dark">${p.ESTADO_NOMBRE}</span></td>
+                <td>
+                    <button class="btn btn-sm btn-dark" onclick="verDetalle('${p.CODIGO_UNICO}')">Info</button>
+                </td>
+            </tr>
+        `;
     }
 </script>
 
