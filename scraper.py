@@ -1,9 +1,7 @@
 import requests
 import pandas as pd
-import json
 import io
 import time
-import random
 
 ENLACES = {
     "detalle": "https://fs.datosabiertos.mef.gob.pe/datastorefiles/DETALLE_INVERSIONES.csv",
@@ -11,65 +9,52 @@ ENLACES = {
     "situacion": "https://fs.datosabiertos.mef.gob.pe/datastorefiles/ESTADO_SITUACIONAL_INVERSIONES.csv"
 }
 
-def obtener_datos_robusto(url):
-    # Lista de navegadores para engañar al firewall del MEF
-    user_agents = [
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36'
-    ]
-    
+def descargar_estilo_navegador(url):
+    # Estos son los headers que envía un Chrome en Incógnito
     headers = {
-        'User-Agent': random.choice(user_agents),
-        'Accept': 'text/csv,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
         'Accept-Language': 'es-ES,es;q=0.9',
-        'Connection': 'keep-alive',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache',
+        'Sec-Ch-Ua': '"Google Chrome";v="123", "Not:A-Brand";v="8", "Chromium";v="123"',
+        'Sec-Ch-Ua-Mobile': '?0',
+        'Sec-Ch-Ua-Platform': '"Windows"',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'none',
+        'Sec-Fetch-User': '?1',
         'Upgrade-Insecure-Requests': '1'
     }
-
-    # Intentamos la descarga ignorando el bucle de redirecciones (allow_redirects=False)
-    # y luego siguiendo solo un paso si es necesario.
+    
     try:
-        with requests.Session() as s:
-            r = s.get(url, headers=headers, timeout=120, allow_redirects=True)
-            return r
-    except requests.exceptions.TooManyRedirects:
-        # Si entra en bucle, pedimos el archivo sin permitir redirecciones y 
-        # confiamos en que el contenido venga en el primer salto.
-        return requests.get(url, headers=headers, timeout=120, allow_redirects=False)
+        # Intentamos descargar SIN SEGUIR REDIRECTS primero para romper el bucle
+        r = requests.get(url, headers=headers, timeout=120, allow_redirects=True)
+        if r.status_code == 200 and "html" not in r.headers.get('Content-Type', ''):
+            return r.content
+        else:
+            print(f"⚠️ El servidor intentó bloquear la petición automática.")
+            return None
+    except Exception as e:
+        print(f"❌ Error: {e}")
+        return None
 
-def procesar():
+def ejecutar():
     for nombre, url in ENLACES.items():
-        print(f"--- Iniciando descarga de {nombre} ---")
-        try:
-            r = obtener_datos_robusto(url)
-            
-            if r.status_code in [200, 301, 302]:
-                # Si es un redirect, intentamos leer el contenido igual (a veces el CSV viene ahí)
-                content = r.content
-                df = pd.read_csv(io.BytesIO(content), sep=None, engine='python', encoding='utf-8-sig', on_bad_lines='skip')
-                
-                chunk_size = 10000
-                total = len(df)
-                partes = (total // chunk_size) + 1
-                
-                for i in range(partes):
-                    chunk = df.iloc[i*chunk_size : (i+1)*chunk_size]
-                    if not chunk.empty:
-                        chunk.to_json(f"data_{nombre}_parte_{i+1}.json", orient='records', force_ascii=False)
-                
-                print(f"✅ {nombre} procesado: {total} filas.")
-                
-                # Pausa LARGA y ALEATORIA para no parecer un bot
-                espera = random.randint(15, 25)
-                print(f"Esperando {espera} segundos para evitar bloqueo...")
-                time.sleep(espera)
-                
-            else:
-                print(f"❌ Error {r.status_code} en {nombre}")
-                
-        except Exception as e:
-            print(f"❌ Error crítico en {nombre}: {str(e)}")
+        print(f"Descargando {nombre}...")
+        data = descargar_estilo_navegador(url)
+        if data:
+            df = pd.read_csv(io.BytesIO(data), sep=None, engine='python', encoding='utf-8-sig', on_bad_lines='skip')
+            # Guardamos por partes
+            chunk_size = 10000
+            for i in range((len(df) // chunk_size) + 1):
+                chunk = df.iloc[i*chunk_size : (i+1)*chunk_size]
+                if not chunk.empty:
+                    chunk.to_json(f"data_{nombre}_parte_{i+1}.json", orient='records', force_ascii=False)
+            print(f"✅ {nombre} listo.")
+            time.sleep(20) # Pausa para "enfriar" la IP entre archivos
+        else:
+            print(f"⏭️ Falló {nombre}")
 
 if __name__ == "__main__":
-    procesar()
+    ejecutar()
