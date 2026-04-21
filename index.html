@@ -67,79 +67,56 @@
 </div>
 
 <script>
-    // Variables globales para almacenar las bases de datos
     let dbDetalle = [];
     let dbSituacion = [];
     let db12b = [];
 
-    // 1. Cargar las 3 bases de datos al iniciar la página
     async function cargarBaseDeDatos() {
         try {
-            console.log("Cargando bases de datos...");
+            // Cargamos los archivos crudos
             const [resDet, resSit, res12b] = await Promise.all([
-                fetch('data_detalle.json?v=' + Date.now()),
-                fetch('data_situacion.json?v=' + Date.now()),
-                fetch('data_f12b.json?v=' + Date.now())
+                fetch('data_detalle.json'),
+                fetch('data_situacion.json'),
+                fetch('data_f12b.json')
             ]);
 
-            dbDetalle = await resDet.json();
+            const fullDetalle = await resDet.json();
             dbSituacion = await resSit.json();
             db12b = await res12b.json();
 
-            document.getElementById('countProyectos').innerText = dbDetalle.length + " proyectos";
-            
-            // Mostramos la tabla inicial con la data de detalle
+            // FILTRADO POR LAMBAYEQUE (Se hace aquí en el cliente)
+            // Buscamos la columna departamento sin importar si tiene espacios o mayúsculas
+            dbDetalle = fullDetalle.filter(p => {
+                const dep = p.DEPARTAMENTO || p.departamento || p.Departamento;
+                return dep && dep.toString().includes("LAMBAYEQUE");
+            });
+
+            document.getElementById('countProyectos').innerText = dbDetalle.length + " proyectos de Lambayeque";
             renderizarTabla(dbDetalle);
+
         } catch (e) {
-            console.error("Error cargando archivos JSON:", e);
-            document.getElementById('tablaCuerpo').innerHTML = `<tr><td colspan="4" class="text-center text-danger">Error al cargar la data. Verifique que los archivos JSON existan en el repositorio.</td></tr>`;
+            console.error("Error:", e);
         }
     }
 
-    // 2. Función para dibujar la tabla principal
-    function renderizarTabla(lista) {
-        const cuerpo = document.getElementById('tablaCuerpo');
-        cuerpo.innerHTML = lista.map(p => {
-            // Buscamos el avance físico en la db12b para cada fila
-            const f12 = db12b.find(f => f.CODIGO_UNICO == p.CODIGO_UNICO);
-            const avance = f12 ? f12.AVANCE_FISICO : (p.AVANCE_FISICO || 0);
-            
-            return `
-            <tr style="cursor:pointer" onclick="mostrarDetalle('${p.CODIGO_UNICO}')">
-                <td><span class="badge bg-light text-dark border">${p.CODIGO_UNICO}</span></td>
-                <td class="small text-uppercase">${(p.NOMBRE_INVERSION || 'SIN NOMBRE').substring(0, 80)}...</td>
-                <td>
-                    <div class="progress" style="height: 10px;">
-                        <div class="progress-bar bg-success" style="width: ${avance}%"></div>
-                    </div>
-                    <small>${avance}%</small>
-                </td>
-                <td class="fw-bold text-nowrap">S/ ${p.PIM_ANIO_ACTUAL ? p.PIM_ANIO_ACTUAL.toLocaleString() : '0'}</td>
-            </tr>`;
-        }).join('');
-    }
-
-    // 3. Función de búsqueda (CUI o Nombre)
     function buscarProyecto() {
         const busqueda = document.getElementById('inputBusqueda').value.toUpperCase();
         
-        // Filtramos sobre la base de detalle
+        // Filtramos la lista de Lambayeque por CUI o Nombre
         const filtrados = dbDetalle.filter(p => 
             p.CODIGO_UNICO.toString().includes(busqueda) || 
-            p.NOMBRE_INVERSION.toUpperCase().includes(busqueda)
+            (p.NOMBRE_INVERSION && p.NOMBRE_INVERSION.toUpperCase().includes(busqueda))
         );
         
         renderizarTabla(filtrados);
 
-        // Si es un CUI exacto, mostramos el detalle automáticamente
-        if (filtrados.length === 1 || dbDetalle.find(x => x.CODIGO_UNICO == busqueda)) {
+        // Si encontramos el CUI exacto, cruzamos con los otros JSONs para el detalle
+        if (dbDetalle.some(x => x.CODIGO_UNICO == busqueda)) {
             mostrarDetalle(busqueda);
         }
     }
 
-    // 4. Función para mostrar el panel lateral de detalle cruzado
     function mostrarDetalle(cui) {
-        // Buscamos en las 3 bolsas de datos
         const p = dbDetalle.find(x => x.CODIGO_UNICO == cui);
         const s = dbSituacion.find(x => x.CODIGO_UNICO == cui);
         const f = db12b.find(x => x.CODIGO_UNICO == cui);
@@ -148,40 +125,17 @@
 
         const detalleDiv = document.getElementById('detalleProyecto');
         detalleDiv.innerHTML = `
-            <h4 class="fw-bold text-primary mb-3">${p.NOMBRE_INVERSION}</h4>
-            <div class="row mb-3">
-                <div class="col-6">
-                    <small class="text-muted d-block">ESTADO</small>
-                    <span class="badge bg-info">${p.ESTADO || 'N/A'}</span>
-                </div>
-                <div class="col-6 text-end">
-                    <small class="text-muted d-block">AVANCE FÍSICO (12B)</small>
-                    <h3 class="fw-bold text-success">${f ? f.AVANCE_FISICO : (p.AVANCE_FISICO || 0)}%</h3>
-                </div>
+            <h4 class="fw-bold text-primary">${p.NOMBRE_INVERSION}</h4>
+            <p><b>Estado:</b> ${p.ESTADO}</p>
+            <p><b>Costo:</b> S/ ${p.COSTO_ACTUALIZADO.toLocaleString()}</p>
+            <div class="alert alert-danger">
+                <b>Problemática:</b> ${s ? s.DESCRIPCION : 'No registrada'}
             </div>
-            <hr>
-            <div class="mb-3">
-                <p class="mb-1 text-muted small">COSTO ACTUALIZADO</p>
-                <h4 class="fw-bold text-dark">S/ ${p.COSTO_ACTUALIZADO ? p.COSTO_ACTUALIZADO.toLocaleString() : '0'}</h4>
-            </div>
-            <div class="p-3 bg-light rounded border-start border-4 border-danger mb-3">
-                <h6 class="fw-bold text-danger">PROBLEMÁTICA (SITUACIONAL):</h6>
-                <p class="small mb-0">${s ? s.DESCRIPCION : 'Sin reportes de problemática registrados.'}</p>
-            </div>
-            <div class="p-3 bg-light rounded border-start border-4 border-success">
-                <h6 class="fw-bold text-success">PRÓXIMOS PASOS (12B):</h6>
-                <p class="small mb-0">${f ? f.ACC_PROBLEMA : 'Continuar con la ejecución física programada.'}</p>
-            </div>
-            <div class="mt-4">
-                <small class="text-muted">Unidad Ejecutora: ${p.NOMBRE_UEP || 'N/A'}</small>
+            <div class="alert alert-success">
+                <b>Próximos Pasos:</b> ${f ? f.ACC_PROBLEMA : 'Continuar ejecución'}
             </div>
         `;
     }
-
-    // Escuchar Enter
-    document.getElementById('inputBusqueda').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') buscarProyecto();
-    });
 
     window.onload = cargarBaseDeDatos;
 </script>
