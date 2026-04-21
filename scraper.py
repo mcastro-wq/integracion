@@ -1,43 +1,37 @@
+import pandas as pd
 import requests
+import io
 import json
 
-def descargar_via_api():
+def descargar_final():
+    # IDs de los recursos (Datasets originales del MEF)
     datasets = {
-        "detalle": "f9cc4ba0-931a-4b70-86c9-eacbd8c68596",
-        "f12b": "c275fa9f-5c61-4313-828d-0827277bdd97",
-        "situacion": "2c20b8e2-7bd9-41ba-8239-8f8c9571935a"
+        "detalle": "https://fs.datosabiertos.mef.gob.pe/datastorefiles/DETALLE_INVERSIONES.csv",
+        "situacion": "https://fs.datosabiertos.mef.gob.pe/datastorefiles/ESTADO_SITUACIONAL.csv",
+        "f12b": "https://fs.datosabiertos.mef.gob.pe/datastorefiles/FORMATO_12B.csv"
     }
 
-    base_url = "https://api.datosabiertos.mef.gob.pe/DatosAbiertos/v1/datastore_search_sql?sql="
-
-    for nombre, resource_id in datasets.items():
+    for nombre, url in datasets.items():
         try:
-            print(f"Consultando {nombre}...")
+            print(f"Procesando {nombre}...")
+            r = requests.get(url, timeout=300)
+            sep = ',' if nombre == 'f12b' else ';'
             
-            # SQL simplificado: Buscamos LAMBAYEQUE en cualquier columna de texto
-            # Usamos un filtro más general por si ENTIDAD_NOMBRE no existe
-            query = f'SELECT * FROM "{resource_id}" WHERE "SECTOR_NOMBRE" LIKE \'GOBIERNOS REGIONALES\' LIMIT 500'
+            # Cargamos solo una parte para no explotar la memoria
+            df = pd.read_csv(io.BytesIO(r.content), sep=sep, encoding='latin-1', low_memory=False)
             
-            response = requests.get(base_url + query, timeout=60)
-            data = response.json()
+            # FILTRO MAESTRO: Buscamos "LAMBAYEQUE" en cualquier columna de texto
+            # Esto reduce el peso de 700MB a 2MB automáticamente
+            mask = df.astype(str).apply(lambda x: x.str.contains('LAMBAYEQUE', case=False, na=False)).any(axis=1)
+            df_final = df[mask].copy()
 
-            records = []
-            if data.get("success") and "result" in data:
-                records = data["result"]["records"]
-                # Filtramos Lambayeque manualmente por seguridad si la API no lo hizo bien
-                records = [r for r in records if "LAMBAYEQUE" in str(r).upper()]
-                print(f"Encontrados {len(records)} registros para {nombre}")
+            # Guardamos como JSON
+            df_final.to_json(f"data_{nombre}.json", orient='records', force_ascii=False)
+            print(f"✅ data_{nombre}.json creado con {len(df_final)} filas.")
 
-            # SEGURO: Si records está vacío o la API falló, guardamos un array vacío []
-            # Esto evita el error de "file not found" en el siguiente paso
-            with open(f"data_{nombre}.json", "w", encoding='utf-8') as f:
-                json.dump(records, f, ensure_ascii=False, indent=2)
-            
         except Exception as e:
-            print(f"Fallo en {nombre}: {e}")
-            # Creamos el archivo de emergencia
-            with open(f"data_{nombre}.json", "w") as f:
-                f.write("[]")
+            print(f"❌ Error en {nombre}: {e}")
+            with open(f"data_{nombre}.json", "w") as f: f.write("[]")
 
 if __name__ == "__main__":
-    descargar_via_api()
+    descargar_final()
