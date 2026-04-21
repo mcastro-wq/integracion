@@ -28,12 +28,8 @@ jobs:
       - name: Ejecutar Scraper y Cruce de Datos
         run: python scraper.py
 
-      - name: Guardar cambios en GitHub
+      - name: Guardar cambios
         run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action Bot"
-          if [ -f data_cruzada.json ]; then
-            git add data_cruzada.json
-            git commit -m "Auto-Update: $(date +'%Y-%m-%d %H:%M')" || exit 0
-            git push
-          fi
+          git add data_detalle.json data_situacion.json data_f12b.json
+          git commit -m "Update All Data" || exit 0
+          git push
