@@ -18,31 +18,35 @@ def descargar_y_recortar():
             r = requests.get(url, timeout=300)
             sep_usar = ',' if nombre == 'f12b' else ';'
             
+            # Cargamos el dataframe
             df = pd.read_csv(io.BytesIO(r.content), sep=sep_usar, encoding='latin-1', low_memory=False, on_bad_lines='skip')
+            
+            # Limpieza forzada de nombres de columnas
             df.columns = [str(c).strip().upper() for c in df.columns]
 
             if nombre == "detalle":
-                # APLICANDO TU FILTRO ESPECÍFICO
-                # 1. Nivel debe ser GR
-                # 2. Entidad debe contener LAM
-                df = df[
-                    (df['NIVEL'] == 'GR')
-                ].copy()
+                # USAMOS POSICIÓN: 
+                # Columna 0 es NIVEL
+                # Columna 3 es CODIGO_UNICO
+                # Filtramos donde la primera columna sea 'GR'
+                df = df[df.iloc[:, 0].astype(str).str.contains('GR', na=False)].copy()
                 
-                cuis_lambayeque = df['CODIGO_UNICO'].unique().tolist()
-                print(f"Filtrado Sede Central Lambayeque: {len(df)} proyectos encontrados.")
+                # Extraemos los CUIs usando la posición 3
+                cuis_lambayeque = df.iloc[:, 3].unique().tolist()
+                print(f"Filtrado Nivel Regional: {len(df)} proyectos encontrados.")
 
             elif nombre in ["situacion", "f12b"]:
-                # Filtramos Situación y 12B por los CUIs resultantes para mantener coherencia
-                if cuis_lambayeque:
-                    df = df[df['CODIGO_UNICO'].isin(cuis_lambayeque)].copy()
+                # Filtramos usando la posición de CODIGO_UNICO (generalmente la 0 en estos archivos)
+                col_cui = [c for c in df.columns if 'UNICO' in c or 'UNIC' in c]
+                if col_cui:
+                    df = df[df[col_cui[0]].isin(cuis_lambayeque)].copy()
 
             # Guardar JSON
             df.to_json(f"data_{nombre}.json", orient='records', force_ascii=False)
             print(f"Éxito: data_{nombre}.json generado.")
 
         except Exception as e:
-            print(f"Error en {nombre}: {e}")
+            print(f"Error crítico en {nombre}: {e}")
             continue
 
 if __name__ == "__main__":
