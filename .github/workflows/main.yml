@@ -33,12 +33,8 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action Bot"
-          
-          # Agregamos específicamente el archivo que genera el script
-          git add data_cruzada.json
-          
-          # El '|| true' evita que el workflow falle si no hay cambios nuevos
-          git commit -m "Auto-update: Data Inversiones Lambayeque" || echo "Sin cambios para actualizar"
-          
-          # Empujamos los cambios
-          git push
+          # El comando 'ls' nos servirá para ver en el log si el archivo existe
+          ls -l 
+          git add data_cruzada.json || echo "El archivo no existe todavía"
+          git commit -m "Update data" || echo "No hay cambios para commitear"
+          git push || echo "No hay nada que pushear"
