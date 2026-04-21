@@ -1,10 +1,9 @@
-name: Actualizar Data Maestro Inversiones
+name: Actualizacion Masiva de Datos MEF
 
 on:
   schedule:
-    # Ejecuta a las 00:00 y 12:00 UTC (Cada 12 horas)
-    - cron: '0 */12 * * *'
-  workflow_dispatch:
+    - cron: '0 */12 * * *' # Cada 12 horas
+  workflow_dispatch: # Botón para ejecutar manualmente
 
 jobs:
   build:
@@ -25,11 +24,17 @@ jobs:
       - name: Instalar Dependencias
         run: pip install pandas requests
 
-      - name: Ejecutar Scraper y Cruce de Datos
+      - name: Ejecutar Descarga Cruda
         run: python scraper.py
 
-      - name: Guardar cambios
+      - name: Guardar cambios en GitHub
         run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action Bot"
+          
+          # Agregamos los 3 archivos generados por el nuevo scraper
           git add data_detalle.json data_situacion.json data_f12b.json
-          git commit -m "Update All Data" || exit 0
+          
+          # Hacemos el commit. Si no hay cambios, no fallará.
+          git commit -m "Update Data: $(date +'%Y-%m-%d %H:%M')" || exit 0
           git push
