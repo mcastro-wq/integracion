@@ -2,42 +2,36 @@ import requests
 import pandas as pd
 import json
 import io
+import os
 
-# Enlaces directos a los CSV (sustituyendo la API SQL que falla)
+# Los 3 enlaces directos a los CSV del MEF
 ENLACES = {
     "detalle": "https://fs.datosabiertos.mef.gob.pe/datastorefiles/DETALLE_INVERSIONES.csv",
     "f12b": "https://fs.datosabiertos.mef.gob.pe/datastorefiles/FORMATO_12B_INVERSIONES.csv",
     "situacion": "https://fs.datosabiertos.mef.gob.pe/datastorefiles/ESTADO_SITUACIONAL_INVERSIONES.csv"
 }
 
-def procesar_archivos():
+def procesar_mef():
     for nombre, url in ENLACES.items():
-        print(f"Descargando CSV de {nombre}...")
+        print(f"Descargando {nombre}...")
         try:
-            # Descarga el archivo completo
-            response = requests.get(url, timeout=120)
-            if response.status_code == 200:
-                # Usamos pandas para leer el CSV (el MEF suele usar separador ';')
-                df = pd.read_csv(io.BytesIO(response.content), sep=None, engine='python', encoding='utf-8-sig')
+            r = requests.get(url, timeout=150)
+            if r.status_code == 200:
+                # Leemos CSV con pandas detectando el separador automáticamente (suelen ser ;)
+                df = pd.read_csv(io.BytesIO(r.content), sep=None, engine='python', encoding='utf-8-sig')
                 
-                # Dividir en partes de 10,000 registros para que el JSON no sea gigante
+                # Dividimos en bloques de 10,000 para mantener archivos ligeros
                 chunk_size = 10000
-                total_filas = len(df)
-                partes = (total_filas // chunk_size) + 1
+                partes = (len(df) // chunk_size) + 1
                 
                 for i in range(partes):
-                    inicio = i * chunk_size
-                    fin = inicio + chunk_size
-                    chunk = df.iloc[inicio:fin]
-                    
+                    chunk = df.iloc[i*chunk_size : (i+1)*chunk_size]
                     if not chunk.empty:
-                        archivo_nombre = f"data_{nombre}_parte_{i+1}.json"
-                        chunk.to_json(archivo_nombre, orient='records', force_ascii=False)
-                        print(f"✅ Generado: {archivo_nombre}")
-            else:
-                print(f"❌ No se pudo descargar {nombre}. Status: {response.status_code}")
+                        # Ejemplo: data_f12b_parte_1.json
+                        chunk.to_json(f"data_{nombre}_parte_{i+1}.json", orient='records', force_ascii=False)
+                print(f"✅ {nombre} procesado en {partes} partes.")
         except Exception as e:
-            print(f"❌ Error procesando {nombre}: {e}")
+            print(f"❌ Error en {nombre}: {e}")
 
 if __name__ == "__main__":
-    procesar_archivos()
+    procesar_mef()
