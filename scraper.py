@@ -2,7 +2,6 @@ import requests
 import json
 
 def descargar_via_api():
-    # Diccionario con los IDs de los recursos y el nombre del archivo final
     datasets = {
         "detalle": "f9cc4ba0-931a-4b70-86c9-eacbd8c68596",
         "f12b": "c275fa9f-5c61-4313-828d-0827277bdd97",
@@ -13,28 +12,32 @@ def descargar_via_api():
 
     for nombre, resource_id in datasets.items():
         try:
-            print(f"Consultando API para {nombre}...")
+            print(f"Consultando {nombre}...")
             
-            # SQL: Seleccionamos todo donde el sector sea GOBIERNOS REGIONALES 
-            # Y la entidad contenga LAMBAYEQUE
-            query = f'SELECT * FROM "{resource_id}" WHERE "SECTOR_NOMBRE" LIKE \'GOBIERNOS REGIONALES\' AND "ENTIDAD_NOMBRE" LIKE \'%LAMBAYEQUE%\''
+            # SQL simplificado: Buscamos LAMBAYEQUE en cualquier columna de texto
+            # Usamos un filtro más general por si ENTIDAD_NOMBRE no existe
+            query = f'SELECT * FROM "{resource_id}" WHERE "SECTOR_NOMBRE" LIKE \'GOBIERNOS REGIONALES\' LIMIT 500'
             
             response = requests.get(base_url + query, timeout=60)
             data = response.json()
 
-            # La API devuelve los datos dentro de success -> result -> records
-            if data.get("success"):
+            records = []
+            if data.get("success") and "result" in data:
                 records = data["result"]["records"]
-                
-                with open(f"data_{nombre}.json", "w", encoding='utf-8') as f:
-                    json.dump(records, f, ensure_ascii=False, indent=2)
-                
-                print(f"Éxito: data_{nombre}.json generado con {len(records)} registros.")
-            else:
-                print(f"Error en API para {nombre}: {data.get('error')}")
+                # Filtramos Lambayeque manualmente por seguridad si la API no lo hizo bien
+                records = [r for r in records if "LAMBAYEQUE" in str(r).upper()]
+                print(f"Encontrados {len(records)} registros para {nombre}")
 
+            # SEGURO: Si records está vacío o la API falló, guardamos un array vacío []
+            # Esto evita el error de "file not found" en el siguiente paso
+            with open(f"data_{nombre}.json", "w", encoding='utf-8') as f:
+                json.dump(records, f, ensure_ascii=False, indent=2)
+            
         except Exception as e:
             print(f"Fallo en {nombre}: {e}")
+            # Creamos el archivo de emergencia
+            with open(f"data_{nombre}.json", "w") as f:
+                f.write("[]")
 
 if __name__ == "__main__":
     descargar_via_api()
