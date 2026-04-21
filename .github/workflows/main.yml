@@ -1,10 +1,10 @@
-name: Dashboard Regional Lambayeque - AutoUpdate
+name: Actualizar Data Maestro Inversiones
 
 on:
   schedule:
-    # Se ejecuta cada 12 horas (00:00 y 12:00 UTC)
+    # Ejecuta a las 00:00 y 12:00 UTC (Cada 12 horas)
     - cron: '0 */12 * * *'
-  workflow_dispatch: # Permite ejecución manual para pruebas
+  workflow_dispatch:
 
 jobs:
   build:
@@ -23,10 +23,9 @@ jobs:
           python-version: '3.9'
 
       - name: Instalar Dependencias
-        run: |
-          pip install pandas requests
+        run: pip install pandas requests
 
-      - name: Ejecutar Integracion de Datos
+      - name: Ejecutar Scraper y Cruce de Datos
         run: python scraper.py
 
       - name: Guardar cambios en GitHub
@@ -35,9 +34,6 @@ jobs:
           git config --local user.name "GitHub Action Bot"
           if [ -f data_cruzada.json ]; then
             git add data_cruzada.json
-            git commit -m "Corte de datos: $(date +'%Y-%m-%d %H:%M')" || exit 0
+            git commit -m "Auto-Update: $(date +'%Y-%m-%d %H:%M')" || exit 0
             git push
-          else
-            echo "Error: data_cruzada.json no generado."
-            exit 1
           fi
