@@ -1,17 +1,15 @@
-name: Actualizacion Masiva de Datos MEF
+name: Actualizacion Masiva de Datos
 
 on:
   schedule:
-    - cron: '0 */12 * * *' # Cada 12 horas
-  workflow_dispatch: # Botón para ejecutar manualmente
+    - cron: '0 0 * * *' # Se ejecuta a medianoche automáticamente
+  push:
+    branches: [ main ]
+  workflow_dispatch: # Te permite ejecutarlo manualmente desde la pestaña Actions
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    permissions:
-      contents: write
-    
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
@@ -22,9 +20,9 @@ jobs:
           python-version: '3.9'
 
       - name: Instalar Dependencias
-        run: pip install pandas requests
+        run: pip install requests pandas
 
-      - name: Ejecutar Descarga Cruda
+      - name: Ejecutar Descarga API SQL
         run: python scraper.py
 
       - name: Guardar cambios en GitHub
@@ -32,10 +30,9 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action Bot"
           
-          # El '|| true' hace que si el archivo no existe, ignore el error y siga
-          git add data_detalle.json || true
-          git add data_f12b.json || true
-          git add data_situacion.json || true
+          # Agregamos los 3 archivos generados por la API
+          git add data_detalle.json data_f12b.json data_situacion.json || true
           
-          git commit -m "Update Data" || exit 0
+          # Hacemos commit solo si hay cambios reales
+          git commit -m "Update Lambayeque Data via API SQL: $(date +'%Y-%m-%d')" || echo "No hay cambios para subir"
           git push
