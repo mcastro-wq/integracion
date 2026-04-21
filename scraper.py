@@ -5,6 +5,7 @@ import io
 def descargar_y_recortar():
     # Eliminamos "detalle" de la lista para evitar el archivo pesado
     datasets = {
+        "detalle": "https://fs.datosabiertos.mef.gob.pe/datastorefiles/DETALLE_INVERSIONES.csv",
         "situacion": "https://fs.datosabiertos.mef.gob.pe/datastorefiles/ESTADO_SITUACIONAL.csv",
         "f12b": "https://fs.datosabiertos.mef.gob.pe/datastorefiles/FORMATO_12B.csv"
     }
