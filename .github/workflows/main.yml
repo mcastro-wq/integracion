@@ -1,11 +1,8 @@
-name: Actualizacion Masiva de Datos
-
+name: Actualizacion Masiva CSV a JSON
 on:
   schedule:
-    - cron: '0 0 * * *' # Se ejecuta a medianoche automáticamente
-  push:
-    branches: [ main ]
-  workflow_dispatch: # Te permite ejecutarlo manualmente desde la pestaña Actions
+    - cron: '0 */12 * * *' # Cada 12 horas
+  workflow_dispatch: # Permite ejecución manual desde la pestaña Actions
 
 jobs:
   build:
@@ -19,20 +16,16 @@ jobs:
         with:
           python-version: '3.9'
 
-      - name: Instalar Dependencias
+      - name: Instalar dependencias
         run: pip install requests pandas
 
-      - name: Ejecutar Descarga API SQL
+      - name: Ejecutar Descarga y Conversion
         run: python scraper.py
 
       - name: Guardar cambios en GitHub
         run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action Bot"
-          
-          # Agregamos los 3 archivos generados por la API
-          git add data_detalle.json data_f12b.json data_situacion.json || true
-          
-          # Hacemos commit solo si hay cambios reales
-          git commit -m "Update Lambayeque Data via API SQL: $(date +'%Y-%m-%d')" || echo "No hay cambios para subir"
+          git config --global user.name 'github-actions'
+          git config --global user.email 'github-actions@github.com'
+          git add data_*.json
+          git commit -m "Sincronizacion automatica de datos MEF" || echo "Sin cambios"
           git push
