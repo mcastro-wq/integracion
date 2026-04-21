@@ -70,24 +70,35 @@
 </div>
 
 <script>
-    async function cargarDataCruzada() {
-        try {
-            const res = await fetch('data_cruzada.json?v=' + new Date().getTime());
-            const data = await res.json();
-            const inv = data[0];
+async function cargarDataCruzada() {
+    try {
+        const cuiBuscado = "2199528"; 
+        const res = await fetch('data_cruzada.json?v=' + new Date().getTime());
+        const listaData = await res.json();
 
+        const inv = listaData.find(p => String(p.cui) === cuiBuscado);
+
+        if (inv) {
             document.getElementById('nom_proyecto').innerText = inv.nombre;
-            document.getElementById('costo_mef').innerText = "S/ " + inv.monto_actualizado.toLocaleString();
-            document.getElementById('obj_estrategico').innerText = inv.objetivo_estrategico;
-            document.getElementById('brecha_mef').innerText = inv.brecha;
-            document.getElementById('pim_mef').innerText = "S/ " + inv.pim.toLocaleString();
-            document.getElementById('dev_mef').innerText = "S/ " + inv.devengado.toLocaleString();
-            document.getElementById('saldo_mef').innerText = "S/ " + (inv.pim - inv.devengado).toLocaleString();
+            document.getElementById('costo_mef').innerText = "S/ " + inv.monto_actualizado.toLocaleString('es-PE', {minimumFractionDigits: 2});
+            
+            // PIM del año actual
+            document.getElementById('pim_mef').innerText = "S/ " + inv.pim.toLocaleString('es-PE', {minimumFractionDigits: 2});
+            
+            // Gasto total (Devengado Acumulado)
+            document.getElementById('dev_mef').innerText = "S/ " + inv.devengado.toLocaleString('es-PE', {minimumFractionDigits: 2});
+            
+            // Saldo respecto al Costo Actualizado (Lo que falta para terminar la obra)
+            const saldoTotal = inv.monto_actualizado - inv.devengado;
+            document.getElementById('saldo_mef').innerText = "S/ " + saldoTotal.toLocaleString('es-PE', {minimumFractionDigits: 2});
 
-        } catch (e) {
-            console.error("No se pudo cargar el archivo de cruce de datos.");
+            // Opcional: Mostrar estado y situación en consola o algún otro tag
+            console.log(`Estado: ${inv.ESTADO} | Situación: ${inv.SITUACION}`);
         }
+    } catch (e) {
+        console.error("Error al cargar data:", e);
     }
+}
     window.onload = cargarDataCruzada;
 </script>
 </body>
