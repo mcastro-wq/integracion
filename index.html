@@ -2,53 +2,50 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Dashboard Lambayeque</title>
+    <title>Buscador CUI Lambayeque</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
-<body class="bg-light p-4">
-    <div class="container shadow bg-white p-4 rounded">
-        <h3>🔍 Buscador de Inversiones Lambayeque</h3>
+<body class="bg-light p-5">
+    <div class="container bg-white p-4 shadow rounded">
+        <h4>🔎 Buscador por CUI (Lambayeque)</h4>
         <div class="input-group my-3">
-            <input type="text" id="cuiInput" class="form-control" placeholder="Ingrese CUI...">
-            <button class="btn btn-dark" onclick="consultar()">Buscar Proyecto</button>
+            <input type="text" id="cuiInput" class="form-control" placeholder="Escriba el CUI (ej. 3043981)">
+            <button class="btn btn-primary" onclick="buscar()">Buscar</button>
         </div>
         <div id="resultado"></div>
     </div>
 
     <script>
-        async function consultar() {
-            const cui = document.getElementById('cuiInput').value;
-            const res = document.getElementById('resultado');
-            res.innerHTML = "Buscando...";
+        async function buscar() {
+            const cui = document.getElementById('cuiInput').value.trim();
+            const div = document.getElementById('resultado');
+            if(!cui) return;
+            
+            div.innerHTML = "Buscando en la base de datos...";
 
             try {
-                // Cargamos los archivos que generó el Actions
-                const [d, s, f] = await Promise.all([
+                // Leemos los JSON locales generados por el Action
+                const [det, sit] = await Promise.all([
                     fetch('data_detalle.json').then(r => r.json()),
-                    fetch('data_situacion.json').then(r => r.json()),
-                    fetch('data_f12b.json').then(r => r.json())
+                    fetch('data_situacion.json').then(r => r.json())
                 ]);
 
-                // Buscamos el CUI en los tres
-                const detalle = d.find(x => x.CODIGO_UNICO == cui || x.CODIGO_INVERSION == cui);
-                const situacion = s.find(x => x.CODIGO_UNICO == cui || x.COD_UNICO == cui);
-                
-                if(!detalle) {
-                    res.innerHTML = "<div class='alert alert-warning'>No se encontró el CUI en Lambayeque.</div>";
-                    return;
-                }
+                // Buscamos el CUI (usamos == para comparar número con texto)
+                const p = det.find(x => x.CODIGO_UNICO == cui);
+                const s = sit.find(x => x.CODIGO_UNICO == cui);
 
-                res.innerHTML = `
-                    <div class="card p-3 border-primary">
-                        <h4>${detalle.NOMBRE_INVERSION}</h4>
-                        <p><strong>Costo Actualizado:</strong> S/ ${detalle.COSTO_ACTUALIZADO}</p>
-                        <hr>
-                        <h5>⚠️ Situación Actual:</h5>
-                        <p class="text-danger">${situacion ? situacion.DESCRIPCION_SITUACION : 'Sin problemas registrados'}</p>
-                    </div>
-                `;
+                if(p) {
+                    div.innerHTML = `
+                        <div class="alert alert-success mt-3">
+                            <h5>${p.NOMBRE_INVERSION || p.INVERSION_NOMBRE}</h5>
+                            <p><strong>Costo:</strong> S/ ${p.COSTO_ACTUALIZADO || 'No disp.'}</p>
+                            <p><strong>Situación:</strong> ${s ? s.DESCRIPCION_SITUACION : 'Sin reporte de problemas'}</p>
+                        </div>`;
+                } else {
+                    div.innerHTML = "<div class='alert alert-danger mt-3'>CUI no encontrado en los datos de Lambayeque.</div>";
+                }
             } catch (e) {
-                res.innerHTML = "Error al leer los datos. Asegúrate de que el Actions haya terminado.";
+                div.innerHTML = "Error al cargar los datos. Verifica que el Action haya terminado.";
             }
         }
     </script>
