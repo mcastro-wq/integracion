@@ -27,7 +27,7 @@ def descargar_y_recortar():
                 # 2. Entidad debe contener LAMBA
                 df = df[
                     (df['NIVEL'] == 'GR') & 
-                    (df['ENTIDAD'].astype(str).str.contains('LAMBA', na=False))
+                    (df['ENTIDAD'].astype(str).str.contains('GOBIERNO REGIONAL LAMBAYEQUE', na=False))
                 ].copy()
                 
                 cuis_lambayeque = df['CODIGO_UNICO'].unique().tolist()
