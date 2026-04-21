@@ -1,34 +1,40 @@
-import pandas as pd
 import requests
-import io
+import json
 
-def descargar_y_recortar():
-    # Eliminamos "detalle" de la lista para evitar el archivo pesado
+def descargar_via_api():
+    # Diccionario con los IDs de los recursos y el nombre del archivo final
     datasets = {
-        "detalle": "https://fs.datosabiertos.mef.gob.pe/datastorefiles/DETALLE_INVERSIONES.csv",
-        "situacion": "https://fs.datosabiertos.mef.gob.pe/datastorefiles/ESTADO_SITUACIONAL.csv",
-        "f12b": "https://fs.datosabiertos.mef.gob.pe/datastorefiles/FORMATO_12B.csv"
+        "detalle": "f9cc4ba0-931a-4b70-86c9-eacbd8c68596",
+        "f12b": "c275fa9f-5c61-4313-828d-0827277bdd97",
+        "situacion": "2c20b8e2-7bd9-41ba-8239-8f8c9571935a"
     }
 
-    for nombre, url in datasets.items():
+    base_url = "https://api.datosabiertos.mef.gob.pe/DatosAbiertos/v1/datastore_search_sql?sql="
+
+    for nombre, resource_id in datasets.items():
         try:
-            print(f"Descargando {nombre}...")
-            r = requests.get(url, timeout=300)
+            print(f"Consultando API para {nombre}...")
             
-            # El Formato 12B suele usar coma, Estado Situacional punto y coma
-            sep_usar = ',' if nombre == 'f12b' else ';'
+            # SQL: Seleccionamos todo donde el sector sea GOBIERNOS REGIONALES 
+            # Y la entidad contenga LAMBAYEQUE
+            query = f'SELECT * FROM "{resource_id}" WHERE "SECTOR_NOMBRE" LIKE \'GOBIERNOS REGIONALES\' AND "ENTIDAD_NOMBRE" LIKE \'%LAMBAYEQUE%\''
             
-            df = pd.read_csv(io.BytesIO(r.content), sep=sep_usar, encoding='latin-1', low_memory=False, on_bad_lines='skip')
-            
-            # Guardamos el JSON completo (Situación y 12B por sí solos suelen pesar menos de 100MB)
-            df.to_json(f"data_{nombre}.json", orient='records', force_ascii=False)
-            print(f"Archivo data_{nombre}.json generado correctamente.")
+            response = requests.get(base_url + query, timeout=60)
+            data = response.json()
+
+            # La API devuelve los datos dentro de success -> result -> records
+            if data.get("success"):
+                records = data["result"]["records"]
+                
+                with open(f"data_{nombre}.json", "w", encoding='utf-8') as f:
+                    json.dump(records, f, ensure_ascii=False, indent=2)
+                
+                print(f"Éxito: data_{nombre}.json generado con {len(records)} registros.")
+            else:
+                print(f"Error en API para {nombre}: {data.get('error')}")
 
         except Exception as e:
-            print(f"Error en {nombre}: {e}")
-            # Archivo vacío de emergencia para que el .yml no falle
-            with open(f"data_{nombre}.json", "w") as f:
-                f.write("[]")
+            print(f"Fallo en {nombre}: {e}")
 
 if __name__ == "__main__":
-    descargar_y_recortar()
+    descargar_via_api()
