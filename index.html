@@ -2,102 +2,131 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Consulta CUI Directa - MEF</title>
+    <title>Dashboard Lambayeque - Consulta Triple SQL</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        .result-card { border-left: 5px solid #0d6efd; transition: all 0.3s ease; }
-        .loading-overlay { display: none; color: #0d6efd; }
+        .header-bg { background: #1a2a6c; color: white; padding: 2rem 0; margin-bottom: 2rem; border-bottom: 5px solid #b21f1f; }
+        .data-card { border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-bottom: 15px; height: 100%; }
+        .label-custom { font-size: 0.8rem; color: #666; text-transform: uppercase; font-weight: bold; }
+        #loader { display: none; }
     </style>
 </head>
 <body class="bg-light">
 
-<div class="container py-5" style="max-width: 700px;">
-    <div class="card shadow border-0 p-4">
-        <h3 class="fw-bold mb-4">🔎 Buscador de Inversiones (Directo MEF)</h3>
-        
-        <div class="input-group mb-3">
-            <input type="text" id="cuiInput" class="form-control form-control-lg" placeholder="Ingrese el CUI (ej. 2199528)">
-            <button class="btn btn-primary px-4" onclick="ejecutarConsulta()">Buscar</button>
-        </div>
-
-        <div id="loader" class="text-center my-3 loading-overlay">
-            <div class="spinner-border spinner-border-sm"></div> Consultando base de datos del MEF...
-        </div>
-
-        <div id="resultado" class="mt-4">
-            </div>
+<div class="header-bg shadow">
+    <div class="container text-center">
+        <h1>📊 Seguimiento de Inversiones</h1>
+        <p>Consulta en tiempo real: Detalle, F12B y Estado Situacional</p>
     </div>
 </div>
 
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="input-group input-group-lg mb-4">
+                <input type="text" id="cuiInput" class="form-control" placeholder="Ingrese CUI (ej. 3043981)">
+                <button class="btn btn-danger" onclick="consultarMEF()">BUSCAR</button>
+            </div>
+            <div id="loader" class="text-center mb-4">
+                <div class="spinner-border text-primary" role="status"></div>
+                <p>Cruzando datos de las 3 fuentes SQL...</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="resultado" class="row d-none">
+        </div>
+</div>
+
 <script>
-async function ejecutarConsulta() {
+async function consultarMEF() {
     const cui = document.getElementById('cuiInput').value.trim();
     const resDiv = document.getElementById('resultado');
     const loader = document.getElementById('loader');
 
     if (!cui) return;
-    
+
     loader.style.display = "block";
-    resDiv.innerHTML = "";
+    resDiv.classList.add('d-none');
 
-    // IDs de tus recursos
-    const idDetalle = "f9cc4ba0-931a-4b70-86c9-eacbd8c68596";
-    const idSituacion = "2c20b8e2-7bd9-41ba-8239-8f8c9571935a";
+    // TUS 3 ENLACES SQL (IDs de Recursos)
+    const ids = {
+        detalle: "f9cc4ba0-931a-4b70-86c9-eacbd8c68596",
+        f12b: "c275fa9f-5c61-4313-828d-0827277bdd97",
+        situacion: "2c20b8e2-7bd9-41ba-8239-8f8c9571935a"
+    };
 
-    // SQL exacto usando CODIGO_UNICO
-    const sqlDetalle = `SELECT * FROM "${idDetalle}" WHERE "CODIGO_UNICO" = '${cui}'`;
-    const sqlSituacion = `SELECT * FROM "${idSituacion}" WHERE "COD_UNICO" = '${cui}' OR "CODIGO_UNICO" = '${cui}'`;
-
-    // Proxy para saltar el bloqueo CORS
     const proxy = "https://corsproxy.io/?";
     const baseUrl = "https://api.datosabiertos.mef.gob.pe/DatosAbiertos/v1/datastore_search_sql?sql=";
 
+    // Queries basadas en tus diccionarios (usando CODIGO_UNICO)
+    const queries = {
+        detalle: `SELECT * FROM "${ids.detalle}" WHERE "CODIGO_UNICO" = '${cui}'`,
+        f12b: `SELECT * FROM "${ids.f12b}" WHERE "CODIGO_UNICO" = '${cui}'`,
+        situacion: `SELECT * FROM "${ids.situacion}" WHERE "CODIGO_UNICO" = '${cui}'`
+    };
+
     try {
-        // 1. Consultamos el Detalle del Proyecto
-        const respDet = await fetch(proxy + encodeURIComponent(baseUrl + sqlDetalle));
-        const dataDet = await respDet.json();
+        // Ejecutamos las 3 consultas al mismo tiempo
+        const [rDet, rF12, rSit] = await Promise.all([
+            fetch(proxy + encodeURIComponent(baseUrl + queries.detalle)).then(r => r.json()),
+            fetch(proxy + encodeURIComponent(baseUrl + queries.f12b)).then(r => r.json()),
+            fetch(proxy + encodeURIComponent(baseUrl + queries.situacion)).then(r => r.json())
+        ]);
 
-        if (dataDet.success && dataDet.result.records.length > 0) {
-            const p = dataDet.result.records[0];
-
-            // 2. Consultamos la Situación (en paralelo)
-            const respSit = await fetch(proxy + encodeURIComponent(baseUrl + sqlSituacion));
-            const dataSit = await respSit.json();
-            const s = dataSit.result.records[0];
+        if (rDet.success && rDet.result.records.length > 0) {
+            const d = rDet.result.records[0];
+            const f = rF12.result.records[0] || {};
+            const s = rSit.result.records[0] || {};
 
             resDiv.innerHTML = `
-                <div class="card result-card shadow-sm p-3">
-                    <h5 class="text-primary fw-bold">${p.NOMBRE_INVERSION || 'Sin nombre'}</h5>
-                    <div class="row mt-3">
-                        <div class="col-6">
-                            <small class="text-muted d-block">CUI</small>
-                            <strong>${p.CODIGO_UNICO}</strong>
-                        </div>
-                        <div class="col-6 text-end">
-                            <small class="text-muted d-block">Costo Actualizado</small>
-                            <strong>S/ ${parseFloat(p.COSTO_ACTUALIZADO || 0).toLocaleString()}</strong>
-                        </div>
+                <div class="col-12 mb-4">
+                    <div class="card shadow p-4 border-0">
+                        <span class="badge bg-primary mb-2" style="width: fit-content;">CUI: ${d.CODIGO_UNICO}</span>
+                        <h3 class="fw-bold">${d.NOMBRE_INVERSION || d.INVERSION_NOMBRE}</h3>
                     </div>
-                    <hr>
-                    <div class="mt-2">
-                        <h6 class="fw-bold text-danger">⚠️ Estado Situacional:</h6>
-                        <p class="small mb-0">${s ? s.DESCRIPCION_SITUACION : 'No se encontraron problemáticas registradas para este CUI.'}</p>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="data-card bg-white shadow-sm">
+                        <h5 class="border-bottom pb-2">📂 Detalle Inversión</h5>
+                        <label class="label-custom">Costo Actualizado</label>
+                        <p class="fw-bold text-success">S/ ${parseFloat(d.COSTO_ACTUALIZADO || 0).toLocaleString()}</p>
+                        <label class="label-custom">Beneficiarios</label>
+                        <p>${d.BENEFICIARIOS || 'No especificado'}</p>
                     </div>
-                    <div class="mt-3">
-                        <small class="text-muted">Sector: ${p.SECTOR_NOMBRE || 'No especificado'}</small>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="data-card bg-white shadow-sm">
+                        <h5 class="border-bottom pb-2">📝 Formato 12B</h5>
+                        <label class="label-custom">Avance Financiero</label>
+                        <p class="fw-bold">${f.AVANCE_FINANCIERO || d.AVANCE_FINANCIERO || 0}%</p>
+                        <label class="label-custom">Acción a realizar</label>
+                        <p>${f.ACCION_REALIZAR || 'No registra acción en 12B'}</p>
                     </div>
-                </div>`;
+                </div>
+
+                <div class="col-md-4">
+                    <div class="data-card bg-white shadow-sm border-danger">
+                        <h5 class="border-bottom pb-2 text-danger">⚠️ Estado Situacional</h5>
+                        <label class="label-custom">Descripción del Problema</label>
+                        <p class="small text-danger">${s.DESCRIPCION_SITUACION || 'Sin problemáticas reportadas en esta fuente.'}</p>
+                        <label class="label-custom">Última Actualización</label>
+                        <p>${s.FECHA_REGISTRO || 'No disponible'}</p>
+                    </div>
+                </div>
+            `;
+            resDiv.classList.remove('d-none');
         } else {
-            resDiv.innerHTML = `<div class="alert alert-warning">El CUI <b>${cui}</b> no existe en la base de datos de Detalle de Inversiones.</div>`;
+            alert("No se encontró información para el CUI ingresado.");
         }
-    } catch (error) {
-        console.error(error);
-        resDiv.innerHTML = `<div class="alert alert-danger">Error de conexión. Es posible que el servicio del MEF esté saturado.</div>`;
+    } catch (e) {
+        alert("Error al conectar con la API del MEF. Reintente en unos segundos.");
     } finally {
         loader.style.display = "none";
     }
 }
 </script>
-
 </body>
 </html>
