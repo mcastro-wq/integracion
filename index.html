@@ -97,13 +97,34 @@
         `).join('');
     }
 
-    function buscarProyecto() {
-        const term = document.getElementById('inputBusqueda').value.toLowerCase();
-        const filtrados = dataCompleta.filter(p => 
-            p.cui.includes(term) || p.nombre.toLowerCase().includes(term)
-        );
-        renderizarTabla(filtrados);
+async function buscarProyecto() {
+    const cui = document.getElementById('inputBusqueda').value;
+
+    // Cargar los 3 archivos en paralelo
+    const [resDet, resSit, res12b] = await Promise.all([
+        fetch('data_detalle.json'),
+        fetch('data_situacion.json'),
+        fetch('data_f12b.json')
+    ]);
+
+    const detalle = await resDet.json();
+    const situacion = await resSit.json();
+    const f12b = await res12b.json();
+
+    // 1. Buscar en Detalle
+    const proyecto = detalle.find(p => p.CODIGO_UNIC == cui || p.CODIGO_UNICO == cui);
+
+    if (proyecto) {
+        // 2. Buscar su problemática en Situación
+        const sit = situacion.find(s => s.CODIGO_UNIC == cui || s.CODIGO_UNICO == cui);
+        
+        // 3. Buscar su avance en 12B
+        const seg = f12b.find(f => f.CODIGO_UNIC == cui || f.CODIGO_UNICO == cui);
+
+        // Mostrar todo en el HTML...
+        actualizarUI(proyecto, sit, seg);
     }
+}
 
     function mostrarDetalle(cui) {
         const inv = dataCompleta.find(p => p.cui === cui);
