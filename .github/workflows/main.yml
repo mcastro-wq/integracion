@@ -33,7 +33,12 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action Bot"
-          # Añadimos todos los posibles archivos generados
-          git add data.json data_cruzada.json || true
-          git commit -m "Cruce unificado de datos: Invierte.pe, CEPLAN, SNPP" || exit 0
+          
+          # Agregamos específicamente el archivo que genera el script
+          git add data_cruzada.json
+          
+          # El '|| true' evita que el workflow falle si no hay cambios nuevos
+          git commit -m "Auto-update: Data Inversiones Lambayeque" || echo "Sin cambios para actualizar"
+          
+          # Empujamos los cambios
           git push
