@@ -2,85 +2,39 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Buscador de CUI - Lambayeque</title>
+    <title>Buscador Lambayeque</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
 </head>
-<body class="bg-light p-4">
-
-<div class="container bg-white shadow-lg rounded p-4" style="max-width: 800px;">
-    <h2 class="text-center mb-4 text-primary fw-bold">🔎 Buscador de CUI Directo</h2>
-    
-    <div class="input-group input-group-lg mb-3">
-        <input type="number" id="cuiInput" class="form-control" placeholder="Ingrese CUI (ej. 2460241)">
-        <button class="btn btn-primary" onclick="buscarCUI()">BUSCAR</button>
+<body class="bg-light p-5">
+    <div class="container bg-white p-4 shadow rounded">
+        <h3>🔎 Buscador Lambayeque (Datos Locales)</h3>
+        <input type="text" id="cui" class="form-control mb-2" placeholder="Ingrese CUI">
+        <button class="btn btn-primary w-100" onclick="buscar()">BUSCAR</button>
+        <div id="res" class="mt-4"></div>
     </div>
 
-    <div id="loader" class="text-center d-none my-4">
-        <div class="spinner-border text-primary"></div>
-        <p class="mt-2 text-muted">Procesando base de datos del MEF (esto puede tardar unos segundos)...</p>
-    </div>
+    <script>
+        async function buscar() {
+            const cui = document.getElementById('cui').value;
+            const div = document.getElementById('res');
+            div.innerHTML = "Buscando...";
+            
+            try {
+                // Cargamos tus JSON propios
+                const resp = await fetch('data_detalle.json');
+                const data = await resp.json();
+                const proy = data.find(x => x.CODIGO_UNICO == cui);
 
-    <div id="resultado" class="mt-4"></div>
-</div>
-
-<script>
-async function buscarCUI() {
-    const cui = document.getElementById('cuiInput').value.trim();
-    const resDiv = document.getElementById('resultado');
-    const loader = document.getElementById('loader');
-
-    if (!cui) return;
-    
-    loader.classList.remove('d-none');
-    resDiv.innerHTML = "";
-
-    // URL de descarga directa de Detalle de Inversiones (Evitamos el SQL que falla)
-    const urlDetalle = "https://fs.datosabiertos.mef.gob.pe/datastorefiles/DETALLE_INVERSIONES.csv";
-    const proxy = "https://corsproxy.io/?";
-
-    Papa.parse(proxy + encodeURIComponent(urlDetalle), {
-        download: true,
-        header: true,
-        delimiter: ";", // El MEF usa punto y coma
-        skipEmptyLines: true,
-        step: function(row) {
-            // Buscamos fila por fila para no saturar la memoria
-            if (row.data.CODIGO_UNICO == cui) {
-                const p = row.data;
-                resDiv.innerHTML = `
-                    <div class="card border-primary shadow">
-                        <div class="card-body">
-                            <h5 class="card-title text-primary fw-bold">${p.NOMBRE_INVERSION}</h5>
-                            <hr>
-                            <div class="row">
-                                <div class="col-6">
-                                    <p><strong>CUI:</strong> ${p.CODIGO_UNICO}</p>
-                                    <p><strong>Costo:</strong> S/ ${parseFloat(p.COSTO_ACTUALIZADO || 0).toLocaleString()}</p>
-                                </div>
-                                <div class="col-6">
-                                    <p><strong>Estado:</strong> <span class="badge bg-success">${p.ESTADO_NOMBRE}</span></p>
-                                    <p><strong>Avance:</strong> ${p.AVANCE_FINANCIERO || 0}%</p>
-                                </div>
-                            </div>
-                        </div>
+                if(proy) {
+                    div.innerHTML = `<div class="alert alert-success">
+                        <h5>${proy.NOMBRE_INVERSION}</h5>
+                        <p>Costo: S/ ${proy.COSTO_ACTUALIZADO}</p>
                     </div>`;
-                this.abort(); // Detenemos la búsqueda al encontrarlo
-                loader.classList.add('d-none');
-            }
-        },
-        complete: function(results) {
-            if (resDiv.innerHTML === "") {
-                resDiv.innerHTML = `<div class="alert alert-warning">No se encontró el CUI ${cui} en la base de datos actual.</div>`;
-                loader.classList.add('d-none');
-            }
-        },
-        error: function(err) {
-            resDiv.innerHTML = `<div class="alert alert-danger">Error al conectar con los archivos del MEF.</div>`;
-            loader.classList.add('d-none');
+                } else {
+                    div.innerHTML = "No encontrado en Lambayeque.";
+                }
+            } catch(e) { div.innerHTML = "Error cargando datos locales."; }
         }
-    });
-}
-</script>
+    </script>
 </body>
 </html>
