@@ -3,141 +3,144 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Regional - Lambayeque</title>
+    <title>Dashboard Regional Lambayeque</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        .card-header { background: #1a1a1a; color: white; font-weight: bold; }
-        .bg-invierte { background: #900; }
-        .highlight-card { border-left: 5px solid #900; }
-        .table-container { max-height: 400px; overflow-y: auto; }
-        tr.selected { background-color: #fff3f3 !important; border: 2px solid #900; }
+        body { background-color: #f4f7f6; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .card { border: none; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .table-container { background: white; padding: 20px; border-radius: 15px; }
+        .badge-estado { padding: 5px 10px; border-radius: 20px; font-size: 0.85em; }
     </style>
 </head>
-<body class="bg-light p-4">
+<body>
 
-<div class="container-fluid">
+<div class="container-fluid py-4">
     <div class="row mb-4">
-        <div class="col-md-8">
-            <h2 class="fw-bold">CONTROL ESTRATÉGICO DE INVERSIONES - LAMBAYEQUE</h2>
-            <p class="text-muted">Consulta en tiempo real de la cartera regional</p>
+        <div class="col">
+            <h2 class="fw-bold">📊 Seguimiento de Inversiones - Lambayeque</h2>
+            <p class="text-muted">Datos actualizados vía API MEF</p>
         </div>
         <div class="col-md-4">
-            <div class="input-group shadow-sm">
-                <input type="text" id="inputBusqueda" class="form-control" placeholder="Ingrese CUI o nombre del proyecto...">
-                <button class="btn btn-dark" onclick="buscarProyecto()">Buscar</button>
-            </div>
+            <input type="text" id="inputBusqueda" class="form-control form-control-lg shadow-sm" 
+                   placeholder="Buscar por CUI o Nombre..." onkeyup="buscarProyecto()">
         </div>
     </div>
 
-    <div class="row g-4">
-        <div class="col-lg-5">
-            <div class="card h-100 shadow highlight-card">
-                <div class="card-header bg-dark">DETALLE DE LA INVERSIÓN SELECCIONADA</div>
-                <div class="card-body" id="detalleProyecto">
-                    <h5 class="text-muted text-center py-5">Seleccione un proyecto de la lista o ingrese un CUI para ver el detalle</h5>
-                </div>
-            </div>
-        </div>
+    <div class="table-container shadow-sm">
+        <table class="table table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>CUI</th>
+                    <th>Inversión</th>
+                    <th>Estado</th>
+                    <th>PIM 2026</th>
+                    <th>Acción</th>
+                </tr>
+            </thead>
+            <tbody id="tablaBody">
+                </tbody>
+        </table>
+    </div>
+</div>
 
-        <div class="col-lg-7">
-            <div class="card shadow">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    LISTADO GENERAL DE PROYECTOS
-                    <span class="badge bg-secondary" id="countProyectos">0 registros</span>
-                </div>
-                <div class="card-body p-0">
-                    <div class="table-container">
-                        <table class="table table-hover mb-0">
-                            <thead class="table-dark sticky-top">
-                                <tr>
-                                    <th>CUI</th>
-                                    <th>Nombre del Proyecto</th>
-                                    <th>Avance %</th>
-                                    <th>PIM 2026</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tablaCuerpo">
-                                </tbody>
-                        </table>
-                    </div>
-                </div>
+<div class="modal fade" id="detalleModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" id="modalTitulo">Detalle del Proyecto</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
+            <div class="modal-body" id="modalContenido">
+                </div>
         </div>
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
     let dbDetalle = [];
     let dbSituacion = [];
     let db12b = [];
 
-    async function cargarBaseDeDatos() {
+    async function cargarDatos() {
         try {
-            // Cargamos los archivos crudos
+            // Cargamos los 3 archivos generados por el scraper de la API
             const [resDet, resSit, res12b] = await Promise.all([
                 fetch('data_detalle.json'),
                 fetch('data_situacion.json'),
                 fetch('data_f12b.json')
             ]);
 
-            const fullDetalle = await resDet.json();
+            dbDetalle = await resDet.json();
             dbSituacion = await resSit.json();
             db12b = await res12b.json();
 
-            // FILTRADO POR LAMBAYEQUE (Se hace aquí en el cliente)
-            // Buscamos la columna departamento sin importar si tiene espacios o mayúsculas
-            dbDetalle = fullDetalle.filter(p => {
-                const dep = p.DEPARTAMENTO || p.departamento || p.Departamento;
-                return dep && dep.toString().includes("LAMBAYEQUE");
-            });
-
-            document.getElementById('countProyectos').innerText = dbDetalle.length + " proyectos de Lambayeque";
             renderizarTabla(dbDetalle);
-
-        } catch (e) {
-            console.error("Error:", e);
+        } catch (error) {
+            console.error("Error cargando archivos JSON:", error);
         }
+    }
+
+    function renderizarTabla(datos) {
+        const tbody = document.getElementById('tablaBody');
+        tbody.innerHTML = datos.map(p => `
+            <tr>
+                <td class="fw-bold">${p.CODIGO_UNICO || p.CODIGO_INVERSION}</td>
+                <td style="max-width: 400px;">${p.NOMBRE_INVERSION || p.INVERSION_NOMBRE}</td>
+                <td><span class="badge bg-info text-dark badge-estado">${p.ESTADO || 'En ejecución'}</span></td>
+                <td>S/ ${parseFloat(p.PIM || 0).toLocaleString()}</td>
+                <td>
+                    <button class="btn btn-sm btn-primary" onclick="verDetalle('${p.CODIGO_UNICO || p.CODIGO_INVERSION}')">
+                        Ver Cruce
+                    </button>
+                </td>
+            </tr>
+        `).join('');
     }
 
     function buscarProyecto() {
-        const busqueda = document.getElementById('inputBusqueda').value.toUpperCase();
-        
-        // Filtramos la lista de Lambayeque por CUI o Nombre
+        const query = document.getElementById('inputBusqueda').value.toUpperCase();
         const filtrados = dbDetalle.filter(p => 
-            p.CODIGO_UNICO.toString().includes(busqueda) || 
-            (p.NOMBRE_INVERSION && p.NOMBRE_INVERSION.toUpperCase().includes(busqueda))
+            (p.CODIGO_UNICO && p.CODIGO_UNICO.toString().includes(query)) || 
+            (p.NOMBRE_INVERSION && p.NOMBRE_INVERSION.toUpperCase().includes(query))
         );
-        
         renderizarTabla(filtrados);
-
-        // Si encontramos el CUI exacto, cruzamos con los otros JSONs para el detalle
-        if (dbDetalle.some(x => x.CODIGO_UNICO == busqueda)) {
-            mostrarDetalle(busqueda);
-        }
     }
 
-    function mostrarDetalle(cui) {
-        const p = dbDetalle.find(x => x.CODIGO_UNICO == cui);
-        const s = dbSituacion.find(x => x.CODIGO_UNICO == cui);
-        const f = db12b.find(x => x.CODIGO_UNICO == cui);
+    function verDetalle(cui) {
+        // CRUZAMOS LOS DATOS AQUÍ
+        const det = dbDetalle.find(x => (x.CODIGO_UNICO || x.CODIGO_INVERSION) == cui);
+        const sit = dbSituacion.find(x => (x.CODIGO_UNICO || x.CODIGO_INVERSION) == cui);
+        const f12 = db12b.find(x => (x.CODIGO_UNICO || x.CODIGO_INVERSION) == cui);
 
-        if (!p) return;
-
-        const detalleDiv = document.getElementById('detalleProyecto');
-        detalleDiv.innerHTML = `
-            <h4 class="fw-bold text-primary">${p.NOMBRE_INVERSION}</h4>
-            <p><b>Estado:</b> ${p.ESTADO}</p>
-            <p><b>Costo:</b> S/ ${p.COSTO_ACTUALIZADO.toLocaleString()}</p>
-            <div class="alert alert-danger">
-                <b>Problemática:</b> ${s ? s.DESCRIPCION : 'No registrada'}
+        const modal = new bootstrap.Modal(document.getElementById('detalleModal'));
+        document.getElementById('modalTitulo').innerText = "CUI: " + cui;
+        
+        document.getElementById('modalContenido').innerHTML = `
+            <div class="mb-3">
+                <h6><strong>Nombre:</strong></h6>
+                <p>${det ? (det.NOMBRE_INVERSION || det.INVERSION_NOMBRE) : 'No disponible'}</p>
             </div>
-            <div class="alert alert-success">
-                <b>Próximos Pasos:</b> ${f ? f.ACC_PROBLEMA : 'Continuar ejecución'}
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card bg-light p-3">
+                        <h6><strong>Estado Situacional:</strong></h6>
+                        <p class="text-danger">${sit ? sit.DESCRIPCION_ESTADO : 'Sin reporte de problemática'}</p>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card bg-light p-3">
+                        <h6><strong>Formato 12B (Avance):</strong></h6>
+                        <p class="text-success">Acción: ${f12 ? f12.ACCION_REALIZAR : 'Continuar ejecución'}</p>
+                    </div>
+                </div>
             </div>
         `;
+        modal.show();
     }
 
-    window.onload = cargarBaseDeDatos;
+    window.onload = cargarDatos;
 </script>
+
 </body>
 </html>
