@@ -34,8 +34,8 @@ def extraer_todo_invierte():
                 'CUI', 
                 'NOMBRE DE LA INVERSION', 
                 'COSTO ACTUALIZADO', 
-                'PIM 2023', # Cambiar a 2026 si el sistema ya lo reporta así
-                'DEVENGADO 2023', 
+                'PIM 2024', # Cambiar a 2026 si el sistema ya lo reporta así
+                'DEVENGADO 2024', 
                 'DEVENGADO ACUMULADO',
                 'ESTADO',
                 'SITUACION'
@@ -43,8 +43,8 @@ def extraer_todo_invierte():
                 'CUI': 'cui',
                 'NOMBRE DE LA INVERSION': 'nombre',
                 'COSTO ACTUALIZADO': 'monto_actualizado',
-                'PIM 2023': 'pim',
-                'DEVENGADO 2023': 'devengado_anual',
+                'PIM 2024': 'pim',
+                'DEVENGADO 2024': 'devengado_anual',
                 'DEVENGADO ACUMULADO': 'devengado'
             })
 
