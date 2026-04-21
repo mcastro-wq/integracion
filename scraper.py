@@ -24,7 +24,7 @@ def descargar_y_recortar():
             if nombre == "detalle":
                 # APLICANDO TU FILTRO ESPECÍFICO
                 # 1. Nivel debe ser GR
-                # 2. Entidad debe contener LAMBA
+                # 2. Entidad debe contener LAM
                 df = df[
                     (df['NIVEL'] == 'GR')
                 ].copy()
