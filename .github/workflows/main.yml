@@ -32,9 +32,11 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action Bot"
           
-          # Agregamos los 3 archivos generados por el nuevo scraper
-          git add data_detalle.json data_situacion.json data_f12b.json
+          # Agregamos los archivos uno por uno. Si no existe alguno, el '|| true' evita que el proceso muera.
+          git add data_detalle.json || true
+          git add data_situacion.json || true
+          git add data_f12b.json || true
           
-          # Hacemos el commit. Si no hay cambios, no fallará.
-          git commit -m "Update Data: $(date +'%Y-%m-%d %H:%M')" || exit 0
-          git push
+          # Solo hacemos commit si hay algo nuevo que subir
+          git commit -m "Update Data Regional: $(date +'%Y-%m-%d %H:%M')" || echo "No hay cambios para subir"
+          git push || echo "No se pudo hacer push"
