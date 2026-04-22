@@ -3,240 +3,163 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reporte Regional de Inversiones - Gestión Local</title>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
+    <title>Dashboard de Inversiones - Región Lambayeque</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --primary: #0056b3;
-            --accent: #28a745;
-            --bg: #f4f7f6;
-            --text: #333;
-            --white: #ffffff;
-        }
-
-        body {
-            font-family: 'Montserrat', sans-serif;
-            background-color: var(--bg);
-            color: var(--text);
-            margin: 0;
-            padding: 20px;
-        }
-
-        .header {
-            text-align: center;
-            padding: 30px 0;
-            background: linear-gradient(135deg, var(--primary), #003d7a);
-            color: white;
-            border-radius: 12px;
-            margin-bottom: 25px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        }
-
-        .search-box {
-            background: var(--white);
-            padding: 25px;
-            border-radius: 12px;
-            display: grid;
-            grid-template-columns: 1fr 2fr 150px;
-            gap: 15px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            margin-bottom: 25px;
-        }
-
-        input, select {
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            font-size: 16px;
-        }
-
-        button {
-            background-color: var(--primary);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: background 0.3s;
-        }
-
-        button:hover { background-color: #004494; }
-
-        .card {
-            background: var(--white);
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 20px;
-            border-left: 6px solid var(--primary);
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-        }
-
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 15px;
-        }
-
-        .cui-badge {
-            background: #e1ecf4;
-            color: var(--primary);
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-weight: bold;
-            font-size: 14px;
-        }
-
-        .status-active { background: #d4edda; color: #155724; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
-
-        .grid-info {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            border-top: 1px solid #eee;
-            padding-top: 15px;
-        }
-
-        .info-block h4 { color: #666; font-size: 12px; text-transform: uppercase; margin-bottom: 5px; }
-        .info-block p { margin: 0; font-size: 14px; font-weight: 500; }
-
-        .monto { color: var(--accent); font-weight: bold; font-size: 18px; }
-
-        .situacion-box {
-            background: #fff9e6;
-            padding: 15px;
-            border-radius: 8px;
-            margin-top: 15px;
-            border: 1px solid #ffeeba;
-        }
-
-        .loading { text-align: center; padding: 40px; font-size: 18px; color: #666; }
+        :root { --blue: #007bff; --bg: #f8f9fa; --text: #334155; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 20px; }
         
-        .hidden { display: none; }
+        /* Header Estilo Dashboard */
+        .header-panel { background: white; padding: 2rem; border-radius: 15px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin-bottom: 2rem; text-align: center; }
+        .header-panel h1 { margin: 0; color: #1e293b; font-size: 1.8rem; }
+        .header-panel p { color: #64748b; margin: 5px 0 0; }
+
+        /* Buscador */
+        .search-container { background: white; padding: 1.5rem; border-radius: 12px; display: flex; gap: 15px; margin-bottom: 2rem; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        select, input { padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.95rem; }
+        .btn-update { background: var(--blue); color: white; border: none; padding: 12px 25px; border-radius: 8px; font-weight: 600; cursor: pointer; }
+        
+        /* Tarjetas de Inversión */
+        .investment-card { background: white; border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; border: 1px solid #e2e8f0; transition: transform 0.2s; }
+        .investment-card:hover { transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+        
+        .card-top { display: flex; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 1rem; margin-bottom: 1rem; }
+        .cui-tag { background: #eff6ff; color: #2563eb; padding: 4px 12px; border-radius: 6px; font-weight: 700; font-size: 0.85rem; }
+        .status-tag { background: #dcfce7; color: #166534; padding: 4px 12px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
+        
+        .grid-details { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; }
+        .label { color: #94a3b8; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; display: block; margin-bottom: 4px; }
+        .value { color: #1e293b; font-size: 0.9rem; font-weight: 500; }
+        .monto-pim { color: #059669; font-weight: 700; font-size: 1.1rem; }
+
+        .loading-overlay { text-align: center; padding: 3rem; font-weight: 600; color: var(--blue); }
     </style>
 </head>
 <body>
 
-    <div class="header">
-        <h1>Sincronización MEF - Reporte de Inversiones</h1>
-        <p>Visualización de Datos Estratégicos para la Alta Dirección</p>
+    <div class="header-panel">
+        <h1>Sincronización MEF - Reporte Regional</h1>
+        <p>Visualizando Inversiones de <strong>LAMBAYEQUE</strong></p>
     </div>
 
-    <div class="search-box">
-        <select id="filtroDepartamento">
-            <option value="">TODAS LAS REGIONES</option>
-            <option value="LAMBAYEQUE">LAMBAYEQUE</option>
-            <option value="CUSCO">CUSCO</option>
-            <option value="AREQUIPA">AREQUIPA</option>
-        </select>
-        <input type="text" id="busquedaCUI" placeholder="Buscar por CUI o Nombre del Proyecto...">
-        <button onclick="buscar()">CONSULTAR</button>
+    <div class="search-container">
+        <div style="flex: 1;">
+            <span class="label">REGIÓN / DEPARTAMENTO</span>
+            <select id="regionSelect" style="width: 100%;">
+                <option value="LAMBAYEQUE" selected>LAMBAYEQUE (Por defecto)</option>
+                <option value="AMAZONAS">AMAZONAS</option>
+                <option value="AREQUIPA">AREQUIPA</option>
+                <option value="CUSCO">CUSCO</option>
+            </select>
+        </div>
+        <div style="flex: 2;">
+            <span class="label">BÚSQUEDA ESPECÍFICA</span>
+            <input type="text" id="searchInput" placeholder="Ingrese CUI o palabras clave..." style="width: 95%;">
+        </div>
+        <button class="btn-update" onclick="procesarBusqueda()">ACTUALIZAR</button>
     </div>
 
-    <div id="loading" class="hidden">Consultando archivos locales...</div>
-    <div id="resultados"></div>
+    <div id="status"></div>
+    <div id="results-container"></div>
 
     <script>
-        // Configuración de los archivos generados por tu scraper
-        const TOTAL_PARTES_DETALLE = 27; 
-        const TOTAL_PARTES_SITUACION = 10;
-        const ARCHIVO_F12B = 'data_f12b_parte_1.json';
+        // Configuración de archivos basada en tu scraper
+        const TOTAL_PARTES = 27;
 
-        async function cargarData(prefix, total) {
-            let dataFull = [];
-            for(let i = 1; i <= total; i++) {
+        // Función para cargar los JSON de forma asíncrona
+        async function fetchAllData() {
+            const container = document.getElementById('results-container');
+            container.innerHTML = '<div class="loading-overlay">Cargando base de datos regional...</div>';
+            
+            let allData = [];
+            // Por rendimiento, primero cargamos las partes necesarias para Lambayeque
+            for (let i = 1; i <= TOTAL_PARTES; i++) {
                 try {
-                    const response = await fetch(`${prefix}_parte_${i}.json`);
-                    const json = await response.json();
-                    dataFull = dataFull.concat(json);
-                } catch (e) { console.error(`Error cargando parte ${i}`); }
+                    const resp = await fetch(`data_detalle_parte_${i}.json`);
+                    if (resp.ok) {
+                        const data = await resp.json();
+                        allData = allData.concat(data);
+                    }
+                } catch (e) { console.warn("Fin de archivos o error en parte " + i); }
             }
-            return dataFull;
+            return allData;
         }
 
-        async function buscar() {
-            const resDiv = document.getElementById('resultados');
-            const term = document.getElementById('busquedaCUI').value.toUpperCase();
-            const depto = document.getElementById('filtroDepartamento').value;
+        async function procesarBusqueda() {
+            const region = document.getElementById('regionSelect').value;
+            const term = document.getElementById('searchInput').value.toLowerCase();
+            const container = document.getElementById('results-container');
             
-            resDiv.innerHTML = '<div class="loading">Procesando información de base de datos local...</div>';
+            // Si es la primera carga o actualizar, obtenemos la data
+            if (!window.fullDatabase) {
+                window.fullDatabase = await fetchAllData();
+            }
 
-            // Cargar toda la data en paralelo
-            const [detalle, f12b, situacion] = await Promise.all([
-                cargarData('data_detalle', TOTAL_PARTES_DETALLE),
-                fetch(ARCHIVO_F12B).then(r => r.json()),
-                cargarData('data_situacion', TOTAL_PARTES_SITUACION)
-            ]);
+            // Filtrar por Región y Término
+            let filtrados = window.fullDatabase.filter(item => 
+                item.DEPARTAMENTO === region && 
+                (item.NOMBRE_INVERSION.toLowerCase().includes(term) || item.CODIGO_UNICO.toString().includes(term))
+            );
 
-            // Filtrar
-            const filtrados = detalle.filter(inv => {
-                const matchTerm = inv.CODIGO_UNICO.toString().includes(term) || inv.NOMBRE_INVERSION.includes(term);
-                const matchDepto = depto === "" || inv.DEPARTAMENTO === depto;
-                return matchTerm && matchDepto;
-            });
+            // Mostrar los primeros 100
+            renderResults(filtrados.slice(0, 100));
+        }
 
-            resDiv.innerHTML = "";
+        function renderResults(data) {
+            const container = document.getElementById('results-container');
+            container.innerHTML = "";
 
-            if(filtrados.length === 0) {
-                resDiv.innerHTML = "<p>No se encontraron registros.</p>";
+            if (data.length === 0) {
+                container.innerHTML = '<div class="loading-overlay">No se encontraron registros para esta selección.</div>';
                 return;
             }
 
-            filtrados.forEach(inv => {
-                // Buscar data complementaria
-                const extraF12b = f12b.find(f => f.CODIGO_UNICO == inv.CODIGO_UNICO);
-                const histSituacion = situacion.filter(s => s.CODIGO_UNICO == inv.CODIGO_UNICO)
-                                              .sort((a,b) => new Date(b.FECHA_REGISTRO) - new Date(a.FECHA_REGISTRO))[0];
-
+            data.forEach(item => {
                 const card = document.createElement('div');
-                card.className = 'card';
+                card.className = 'investment-card';
                 card.innerHTML = `
-                    <div class="card-header">
+                    <div class="card-top">
                         <div>
-                            <span class="cui-badge">CUI: ${inv.CODIGO_UNICO}</span>
-                            <span class="status-active">${inv.ESTADO}</span>
-                            <h3 style="margin: 10px 0;">${inv.NOMBRE_INVERSION}</h3>
-                            <small>📍 ${inv.DEPARTAMENTO} > ${inv.PROVINCIA} > ${inv.DISTRITO}</small>
+                            <span class="cui-tag">CUI: ${item.CODIGO_UNICO}</span>
+                            <h3 style="margin: 12px 0 5px 0; font-size: 1.1rem; line-height: 1.4;">${item.NOMBRE_INVERSION}</h3>
+                            <small style="color: #64748b;">📍 ${item.PROVINCIA} / ${item.DISTRITO} | 🏛️ ${item.ENTIDAD}</small>
                         </div>
-                        <div style="text-align: right">
-                            <span style="font-size: 12px; color: #666">PIM ACTUAL</span><br>
-                            <span class="monto">S/ ${inv.PIM_ANIO_ACTUAL.toLocaleString()}</span>
-                        </div>
-                    </div>
-
-                    <div class="grid-info">
-                        <div class="info-block">
-                            <h4>Unidad Formuladora</h4>
-                            <p>${inv.NOMBRE_UF}</p>
-                        </div>
-                        <div class="info-block">
-                            <h4>Avance Físico</h4>
-                            <div style="background: #eee; border-radius: 10px; height: 10px; margin-top: 5px;">
-                                <div style="background: var(--accent); width: ${inv.AVANCE_FISICO || 0}%; height: 100%; border-radius: 10px;"></div>
+                        <div style="text-align: right;">
+                            <span class="status-tag">${item.ESTADO}</span>
+                            <div style="margin-top: 15px;">
+                                <span class="label">PIM 2026</span>
+                                <span class="monto-pim">S/ ${item.PIM_ANIO_ACTUAL.toLocaleString()}</span>
                             </div>
-                            <p style="font-size: 12px; margin-top: 5px;">${inv.AVANCE_FISICO || 0}% reportado</p>
-                        </div>
-                        <div class="info-block">
-                            <h4>Costo Actualizado</h4>
-                            <p>S/ ${inv.COST_ACTUALIZADO ? inv.COST_ACTUALIZADO.toLocaleString() : inv.MONTO_VIABLE.toLocaleString()}</p>
-                        </div>
-                        <div class="info-block">
-                            <h4>Tipología</h4>
-                            <p>${inv.DES_TIPOLOGIA || 'No definida'}</p>
                         </div>
                     </div>
-
-                    <div class="situacion-box">
-                        <strong>Último Estado Situacional (F12B):</strong><br>
-                        <p style="margin: 5px 0; font-size: 14px;">
-                            ${extraF12b ? extraF12b.ULT_ESTADO_SITUACIONAL : (histSituacion ? histSituacion.DESCRIPCION : 'Sin registro de situación reciente')}
-                        </p>
-                        ${extraF12b && extraF12b.ULT_PROBLEMA ? `<small>⚠️ <strong>Problema:</strong> ${extraF12b.ULT_PROBLEMA}</small>` : ''}
+                    <div class="grid-details">
+                        <div>
+                            <span class="label">Unidad Formuladora</span>
+                            <span class="value">${item.NOMBRE_UF || 'No registrado'}</span>
+                        </div>
+                        <div>
+                            <span class="label">Avance Físico</span>
+                            <span class="value">${item.AVANCE_FISICO || 0}%</span>
+                            <div style="background: #e2e8f0; height: 6px; border-radius: 3px; margin-top: 5px;">
+                                <div style="background: #2563eb; width: ${item.AVANCE_FISICO || 0}%; height: 100%; border-radius: 3px;"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <span class="label">Costo Actualizado</span>
+                            <span class="value">S/ ${item.COSTO_ACTUALIZADO.toLocaleString()}</span>
+                        </div>
+                        <div>
+                            <span class="label">Tipología</span>
+                            <span class="value">${item.DES_TIPOLOGIA || 'General'}</span>
+                        </div>
                     </div>
                 `;
-                resDiv.appendChild(card);
+                container.appendChild(card);
             });
         }
+
+        // Ejecutar al cargar la página
+        window.onload = procesarBusqueda;
     </script>
 </body>
 </html>
