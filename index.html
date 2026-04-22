@@ -116,91 +116,94 @@
             renderizar(data);
         }
 
-        function renderizar(data) {
-            const container = document.getElementById('results-list');
-            container.innerHTML = "";
+      function renderizar(data) {
+    const container = document.getElementById('results-list');
+    container.innerHTML = "";
 
-            data.forEach(item => {
-                const f12 = full_db.f12b.find(x => x.CODIGO_UNICO == item.CODIGO_UNICO);
-                const historial = full_db.situacion.filter(x => x.CODIGO_UNICO == item.CODIGO_UNICO)
-                                                  .sort((a,b) => new Date(b.FECHA_REGISTRO) - new Date(a.FECHA_REGISTRO));
+    // 1. VALIDACIÓN: SI NO HAY RESULTADOS (Para que el Gobernador no vea la pantalla vacía)
+    if (data.length === 0) {
+        container.innerHTML = `
+            <div style="text-align: center; padding: 60px; background: white; border-radius: 15px; border: 2px dashed #cbd5e1; margin-top: 20px;">
+                <div style="font-size: 4rem; margin-bottom: 20px;">🔎</div>
+                <h2 style="color: #004a99; margin: 0;">Inversión no localizada</h2>
+                <p style="color: #64748b; font-size: 1.1rem; max-width: 500px; margin: 15px auto;">
+                    No hemos encontrado registros con esos criterios en la base de datos de <b>${document.getElementById('regionSelect').value}</b>.
+                </p>
+                <p style="color: #94a3b8; font-size: 0.9rem;">Pruebe buscando solo el número de CUI o verifique el Departamento seleccionado.</p>
+                <button onclick="location.reload()" style="margin-top: 20px; padding: 12px 24px; background: #004a99; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 700;">
+                    REINICIAR BÚSQUEDA
+                </button>
+            </div>
+        `;
+        return;
+    }
 
-                const card = document.createElement('div');
-                card.className = 'card';
-                card.innerHTML = `
-                    <div class="card-summary" onclick="toggle(${item.CODIGO_UNICO})">
-                        <div>
-                            <span class="tag-cui">CUI ${item.CODIGO_UNICO}</span>
-                            <h3 style="margin: 10px 0; font-size: 1rem; line-height: 1.4;">${item.NOMBRE_INVERSION}</h3>
-                            <div style="font-size: 0.8rem; color: #64748b;">📍 ${item.PROVINCIA} / ${item.DISTRITO} | 🏛️ <b>${item.ENTIDAD}</b></div>
-                        </div>
-                        <div style="text-align: right;">
-                            <span class="tag-status">${item.ESTADO}</span>
-                            <div style="margin-top: 15px;"><span class="label">PIM 2026</span><span style="font-size: 1.2rem; font-weight: 800; color: var(--primary-blue);">S/ ${item.PIM_ANIO_ACTUAL?.toLocaleString()}</span></div>
-                        </div>
+    // 2. RENDERIZADO DE TARJETAS (Con todos los campos de tus JSON)
+    data.forEach(item => {
+        // Cruce de datos con F12B y Situación
+        const f12 = full_db.f12b.find(x => x.CODIGO_UNICO == item.CODIGO_UNICO);
+        const historial = full_db.situacion.filter(x => x.CODIGO_UNICO == item.CODIGO_UNICO)
+                                          .sort((a,b) => new Date(b.FECHA_REGISTRO) - new Date(a.FECHA_REGISTRO));
+
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+            <div class="card-summary" onclick="toggle(${item.CODIGO_UNICO})">
+                <div>
+                    <span class="tag-cui">CUI ${item.CODIGO_UNICO}</span>
+                    <h3 style="margin: 12px 0; font-size: 1.1rem; color: #1e293b;">${item.NOMBRE_INVERSION}</h3>
+                    <div style="font-size: 0.85rem; color: #64748b;">
+                        📍 ${item.PROVINCIA} / ${item.DISTRITO} | 🏛️ <b>${item.ENTIDAD}</b>
                     </div>
-
-                    <div class="detail-panel" id="panel-${item.CODIGO_UNICO}">
-                        <div class="info-grid">
-                            <div class="section-full">1. IDENTIFICACIÓN Y UBICACIÓN ESTRATÉGICA</div>
-                            <div class="data-item"><span class="label">NIVEL / SECTOR</span><span class="value">${item.NIVEL} / ${item.SECTOR}</span></div>
-                            <div class="data-item"><span class="label">UNIDAD FORMULADORA (UF)</span><span class="value">${item.NOMBRE_UF}</span></div>
-                            <div class="data-item"><span class="label">UNIDAD EJECUTORA (UEI)</span><span class="value">${item.NOMBRE_UEI}</span></div>
-                            <div class="data-item"><span class="label">OPMI RESPONSABLE</span><span class="value">${item.NOMBRE_OPMI}</span></div>
-                            <div class="data-item"><span class="label">SITUACIÓN</span><span class="value">${item.SITUACION}</span></div>
-                            <div class="data-item"><span class="label">TIPOLOGÍA</span><span class="value">${item.DES_TIPOLOGIA}</span></div>
-                            <div class="data-item"><span class="label">TIPO INVERSIÓN</span><span class="value">${item.TIPO_INVERSION}</span></div>
-                            <div class="data-item"><span class="label">LATITUD / LONGITUD</span><span class="value">${item.LATITUD}, ${item.LONGITUD}</span></div>
-
-                            <div class="section-full">2. CONTROL FINANCIERO Y DEVENGADOS</div>
-                            <div class="data-item"><span class="label">MONTO VIABLE</span><span class="value">S/ ${item.MONTO_VIABLE?.toLocaleString()}</span></div>
-                            <div class="data-item"><span class="label">COSTO ACTUALIZADO</span><span class="value">S/ ${item.COSTO_ACTUALIZADO?.toLocaleString()}</span></div>
-                            <div class="data-item"><span class="label">PIA ACTUAL</span><span class="value">S/ ${item.PIA_ANIO_ACTUAL?.toLocaleString()}</span></div>
-                            <div class="data-item"><span class="label">CERTIFICADO ANUAL</span><span class="value">S/ ${item.CERTIF_ANIO_ACTUAL?.toLocaleString()}</span></div>
-                            <div class="data-item"><span class="label">COMPROMISO ANUAL</span><span class="value">S/ ${item.COMPROM_ANUAL_ANIO_ACTUAL?.toLocaleString()}</span></div>
-                            <div class="data-item"><span class="label">DEVENGADO AÑO ACTUAL</span><span class="value">S/ ${item.DEV_ANIO_ACTUAL?.toLocaleString()}</span></div>
-                            <div class="data-item"><span class="label">DEVENGADO ACUMULADO ANT.</span><span class="value">S/ ${item.DEVEN_ACUMUL_ANIO_ANT?.toLocaleString()}</span></div>
-                            <div class="data-item"><span class="label" style="color:red">SALDO POR EJECUTAR</span><span class="value" style="color:red">S/ ${item.SALDO_EJECUTAR?.toLocaleString()}</span></div>
-
-                            <div class="section-full">3. CRONOGRAMA DE EJECUCIÓN</div>
-                            <div class="data-item"><span class="label">FECHA VIABILIDAD</span><span class="value">${item.FECHA_VIABILIDAD || '--'}</span></div>
-                            <div class="data-item"><span class="label">INICIO EJECUCIÓN</span><span class="value">${item.FEC_INI_EJECUCION || '--'}</span></div>
-                            <div class="data-item"><span class="label">FIN EJECUCIÓN</span><span class="value">${item.FEC_FIN_EJECUCION || '--'}</span></div>
-                            <div class="data-item"><span class="label">INICIO FÍSICO</span><span class="value">${item.FEC_INI_EJEC_FISICA || '--'}</span></div>
-                            <div class="data-item"><span class="label">EXPEDIENTE TÉCNICO</span><span class="value">${item.EXPEDIENTE_TECNICO}</span></div>
-                            <div class="data-item"><span class="label">INFORME CIERRE</span><span class="value">${item.INFORME_CIERRE}</span></div>
-                            <div class="data-item"><span class="label">MODALIDAD</span><span class="value">${item.DES_MODALIDAD}</span></div>
-                            <div class="data-item"><span class="label">POBLACIÓN BENEFICIADA</span><span class="value">${item.NUM_HABITANTES_BENEF?.toLocaleString()} hab.</span></div>
-
-                            <div class="section-full">4. SEGUIMIENTO F12B (BANCO DE INVERSIONES)</div>
-                            <div class="data-item"><span class="label">ÚLT. ACT. F12B</span><span class="value">${f12?.FECHA_ULT_ACT_F12B || 'SIN REPORTE'}</span></div>
-                            <div class="data-item"><span class="label">AVANCE FÍSICO</span><span class="value" style="font-size:1.2rem; color:var(--primary-blue)">${f12?.AVANCE_FISICO || item.AVANCE_FISICO || 0}%</span></div>
-                            <div class="data-item"><span class="label">AVANCE EJECUCIÓN</span><span class="value">${item.AVANCE_EJECUCION || 0}%</span></div>
-                            <div class="data-item"><span class="label">ULT. ESTADO SITUACIONAL</span><span class="value">${f12?.ULT_ESTADO_SITUACIONAL || '--'}</span></div>
-                            <div class="section-full" style="background:#fff1f2">5. ALERTAS Y PROBLEMAS (F12B)</div>
-                            <div class="data-item" style="grid-column: span 2;"><span class="label">PROBLEMA REPORTADO</span><span class="value" style="color:var(--danger-red)">${f12?.ULT_PROBLEMA || 'NINGUNO'}</span></div>
-                            <div class="data-item" style="grid-column: span 2;"><span class="label">ACCIÓN TOMADA</span><span class="value">${f12?.ACC_PROBLEMA || '--'}</span></div>
-                        </div>
-
-                        <div class="section-full">6. HISTORIAL COMPLETO DE ANOTACIONES (SITUACIÓN)</div>
-                        <div class="situacion-scroll">
-                            ${historial.length > 0 ? historial.map(h => `
-                                <div class="situacion-item">
-                                    <span style="font-weight:800; color:var(--primary-blue)">[${h.FECHA_REGISTRO}]</span> - 
-                                    <span style="color:#64748b; font-weight:700;">${h.TIP_REGISTRO}:</span> ${h.DESCRIPCION}
-                                </div>
-                            `).join('') : '<div class="situacion-item">No hay registros históricos.</div>'}
-                        </div>
-
-                        <div class="section-full">7. RESUMEN DE ALTERNATIVA TÉCNICA</div>
-                        <p style="font-size: 0.75rem; line-height: 1.5; color: #475569; background: white; padding: 10px; border-radius: 8px; border: 1px solid var(--border);">
-                            ${item.ALTERNATIVA || 'No se detalló alternativa en el registro.'}
-                        </p>
+                </div>
+                <div style="text-align: right; min-width: 180px;">
+                    <span class="tag-status">${item.ESTADO}</span>
+                    <div style="margin-top: 15px;">
+                        <span class="label">PIM 2026</span>
+                        <div style="font-size: 1.3rem; font-weight: 800; color: #004a99;">S/ ${item.PIM_ANIO_ACTUAL?.toLocaleString()}</div>
                     </div>
-                `;
-                container.appendChild(card);
-            });
-        }
+                </div>
+            </div>
+
+            <div class="detail-panel" id="panel-${item.CODIGO_UNICO}">
+                <div class="info-grid">
+                    <div class="section-full">1. ESTRUCTURA TÉCNICA Y RESPONSABILIDAD</div>
+                    <div class="data-item"><span class="label">UNIDAD FORMULADORA</span><span class="value">${item.NOMBRE_UF}</span></div>
+                    <div class="data-item"><span class="label">UNIDAD EJECUTORA</span><span class="value">${item.NOMBRE_UEI}</span></div>
+                    <div class="data-item"><span class="label">MODALIDAD</span><span class="value">${item.DES_MODALIDAD}</span></div>
+                    <div class="data-item"><span class="label">TIPOLOGÍA</span><span class="value">${item.DES_TIPOLOGIA}</span></div>
+
+                    <div class="section-full">2. ANÁLISIS FINANCIERO Y COSTOS</div>
+                    <div class="data-item"><span class="label">COSTO ACTUALIZADO</span><span class="value">S/ ${item.COSTO_ACTUALIZADO?.toLocaleString()}</span></div>
+                    <div class="data-item"><span class="label">MONTO VIABLE</span><span class="value">S/ ${item.MONTO_VIABLE?.toLocaleString()}</span></div>
+                    <div class="data-item"><span class="label">DEVENGADO ACUMULADO</span><span class="value">S/ ${item.DEVEN_ACUMUL_ANIO_ANT?.toLocaleString()}</span></div>
+                    <div class="data-item"><span class="label" style="color:#e11d48">SALDO POR EJECUTAR</span><span class="value" style="color:#e11d48">S/ ${item.SALDO_EJECUTAR?.toLocaleString()}</span></div>
+
+                    <div class="section-full">3. ESTADO DE EJECUCIÓN (F12B)</div>
+                    <div class="data-item"><span class="label">AVANCE FÍSICO REAL</span><span class="value" style="font-size:1.4rem; color:#059669">${f12?.AVANCE_FISICO || item.AVANCE_FISICO || 0}%</span></div>
+                    <div class="data-item"><span class="label">INICIO / FIN ESTIMADO</span><span class="value">${item.FEC_INI_EJECUCION || 'No definido'} / ${item.FEC_FIN_EJECUCION || 'No definido'}</span></div>
+                    <div class="data-item" style="grid-column: span 2;"><span class="label">ÚLTIMO REPORTE SITUACIONAL (F12B)</span><span class="value">${f12?.ULT_ESTADO_SITUACIONAL || 'Sin reporte reciente'}</span></div>
+                </div>
+
+                <div class="section-full">4. HISTORIAL CRONOLÓGICO DE ALERTAS</div>
+                <div class="situacion-scroll">
+                    ${historial.length > 0 ? historial.map(h => `
+                        <div class="situacion-item">
+                            <span style="font-weight:800; color:#004a99;">[${h.FECHA_REGISTRO}]</span> 
+                            <b style="color:#1e293b;">${h.TIP_REGISTRO}:</b> ${h.DESCRIPCION}
+                        </div>
+                    `).join('') : '<div class="situacion-item">No se registran alertas históricas en el sistema.</div>'}
+                </div>
+
+                <div style="margin-top:20px; padding: 15px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px;">
+                    <span class="label">ALTERNATIVA TÉCNICA</span>
+                    <p style="font-size: 0.8rem; line-height: 1.4; color: #475569; margin: 5px 0;">${item.ALTERNATIVA || 'No hay descripción de alternativa disponible.'}</p>
+                </div>
+            </div>
+        `;
+        container.appendChild(card);
+    });
+}
         window.onload = cargarBaseDatos;
     </script>
 </body>
