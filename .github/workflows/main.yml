@@ -2,14 +2,18 @@ name: Actualizacion Masiva CSV a JSON
 on:
   schedule:
     - cron: '0 */12 * * *' # Cada 12 horas
-  workflow_dispatch: # Permite ejecución manual desde la pestaña Actions
+  workflow_dispatch: # Ejecución manual
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    # Añadimos permisos para que el Action pueda escribir en tu repositorio
+    permissions:
+      contents: write
+      
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4 # Actualizado a v4
 
       - name: Configurar Python
         uses: actions/setup-python@v4
@@ -17,15 +21,19 @@ jobs:
           python-version: '3.9'
 
       - name: Instalar dependencias
-        run: pip install requests pandas
+        run: pip install requests pandas openpyxl
 
       - name: Ejecutar Descarga y Conversion
         run: python scraper.py
+        # Aumentamos el timeout por si el MEF demora en responder
+        timeout-minutes: 15 
 
       - name: Guardar cambios en GitHub
         run: |
-          git config --global user.name 'github-actions'
-          git config --global user.email 'github-actions@github.com'
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          # git add . añade todos los nuevos data_*.json creados
           git add data_*.json
-          git commit -m "Sincronizacion automatica de datos MEF" || echo "Sin cambios"
+          # Si no hay cambios, el commit fallaría; el || true evita que el Action se marque como error
+          git commit -m "Sincronizacion automatica de datos MEF: $(date +'%Y-%m-%d %H:%M')" || exit 0
           git push
