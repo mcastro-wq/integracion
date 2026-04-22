@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Inversiones - Lambayeque</title>
+    <title>Dashboard Inversiones - Integración Total</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body { background-color: #f0f2f5; font-family: 'Segoe UI', sans-serif; }
@@ -13,12 +13,13 @@
         .badge-cui { font-family: monospace; font-size: 1rem; }
         .detail-pane { display: none; background-color: #f8f9fa; border-left: 5px solid #004080; }
         .money { font-weight: 600; color: #2d5a27; }
+        .situacion-label { font-size: 0.75rem; padding: 4px 8px; border-radius: 4px; background: #e9ecef; border: 1px solid #dee2e6; }
     </style>
 </head>
 <body>
 
 <div class="header-custom text-center">
-    <h2>Sincronización Invierte.pe / MEF  - Reporte Regional</h2>
+    <h2>Sincronización Invierte.pe / MEF - Integrado</h2>
     <p id="subtitulo">Seguimiento de Inversiones de LAMBAYEQUE</p>
 </div>
 
@@ -67,7 +68,7 @@
 
     <div id="loader" class="text-center d-none my-5">
         <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;"></div>
-        <p class="mt-2">Consultando registros...</p>
+        <p class="mt-2 text-primary fw-bold">Consolidando información (Detalle + Situación + F12B)...</p>
     </div>
 
     <div class="res-table shadow-sm">
@@ -78,7 +79,7 @@
                     <th style="width: 40%;">Inversión / Ubicación</th>
                     <th>Presupuesto (PIM)</th>
                     <th>Ejecución Física</th>
-                    <th>Estado</th>
+                    <th>Estado / Situación</th>
                     <th>Ficha</th>
                 </tr>
             </thead>
@@ -88,14 +89,28 @@
 </div>
 
 <script>
-    const TOTAL_PARTES = 30; // Ajusta según el número de archivos en tu repo
+    const TOTAL_PARTES = 30;
 
-    // Carga inicial automática
     window.onload = () => realizarBusqueda();
 
     function actualizarSubtitulo() {
         const reg = document.getElementById('filtroRegion').value;
-        document.getElementById('subtitulo').innerText = reg === "TODOS" ? "Visualizando Inversiones a Nivel Nacional" : `Visualizando Inversiones de ${reg}`;
+        document.getElementById('subtitulo').innerText = reg === "TODOS" ? "Inversiones a Nivel Nacional" : `Inversiones de ${reg}`;
+    }
+
+    // Función auxiliar para buscar datos adicionales por CUI en otros archivos JSON
+    async function obtenerInfoExtra(cui, tipo) {
+        // Buscamos en las primeras partes para optimizar
+        for (let i = 1; i <= 5; i++) {
+            try {
+                const res = await fetch(`data_${tipo}_parte_${i}.json`);
+                if (!res.ok) break;
+                const data = await res.json();
+                const encontrado = data.find(item => item.CODIGO_UNICO == cui);
+                if (encontrado) return encontrado;
+            } catch (e) { break; }
+        }
+        return null;
     }
 
     async function realizarBusqueda() {
@@ -109,31 +124,41 @@
         let encontrados = [];
 
         try {
+            // 1. CARGA DE DATOS BASE (DETALLE)
             for (let i = 1; i <= TOTAL_PARTES; i++) {
                 const response = await fetch(`data_detalle_parte_${i}.json`);
                 if (!response.ok) break;
                 const data = await response.json();
 
                 const filtrados = data.filter(item => {
-                    // Lógica de Filtro por Región
                     const cumpleRegion = (regionFiltro === "TODOS") || (item.DEPARTAMENTO === regionFiltro);
-                    
-                    // Lógica de Filtro por Texto (CUI, Nombre o Entidad)
                     const cumpleTexto = !textoFiltro || 
                                        (item.CODIGO_UNICO && item.CODIGO_UNICO.toString().includes(textoFiltro)) ||
                                        (item.NOMBRE_INVERSION && item.NOMBRE_INVERSION.includes(textoFiltro)) ||
                                        (item.ENTIDAD && item.ENTIDAD.includes(textoFiltro));
-
                     return cumpleRegion && cumpleTexto;
                 });
 
-                encontrados = [...encontrados, ...filtrados];
-                // Limitar a 100 resultados para mantener fluidez
-                if (encontrados.length >= 100) break;
+                // 2. PARA CADA RESULTADO, CRUCEMOS CON SITUACION Y F12B
+                for (let item of filtrados) {
+                    if (encontrados.length >= 50) break; // Límite para evitar lentitud
+                    
+                    const situacion = await obtenerInfoExtra(item.CODIGO_UNICO, 'situacion');
+                    const f12b = await obtenerInfoExtra(item.CODIGO_UNICO, 'f12b');
+                    
+                    encontrados.push({
+                        ...item,
+                        EXT_SITUACION: situacion ? situacion.DES_SITUACION : (item.SITUACION || 'No registrada'),
+                        EXT_ULT_ACT: f12b ? f12b.FECHA_REGISTRO : '---',
+                        EXT_AVANCE_REAL: f12b ? f12b.AVANCE_FISICO_REAL : item.AVANCE_FISICO
+                    });
+                }
+
+                if (encontrados.length >= 50) break;
             }
             renderTable(encontrados);
         } catch (e) {
-            body.innerHTML = `<tr><td colspan="6" class="text-center text-danger p-4">Error conectando con los datos locales.</td></tr>`;
+            body.innerHTML = `<tr><td colspan="6" class="text-center text-danger p-4">Error de conexión.</td></tr>`;
         } finally {
             loader.classList.add('d-none');
         }
@@ -142,7 +167,7 @@
     function renderTable(lista) {
         const body = document.getElementById('tablaBody');
         if (lista.length === 0) {
-            body.innerHTML = `<tr><td colspan="6" class="text-center p-5 text-muted">No se encontraron inversiones con esos criterios.</td></tr>`;
+            body.innerHTML = `<tr><td colspan="6" class="text-center p-5 text-muted">No se encontraron resultados.</td></tr>`;
             return;
         }
 
@@ -168,14 +193,15 @@
                     <td>
                         <div class="d-flex align-items-center">
                             <div class="progress w-100 me-2" style="height: 10px;">
-                                <div class="progress-bar bg-success" style="width: ${p.AVANCE_FISICO || 0}%"></div>
+                                <div class="progress-bar bg-success" style="width: ${p.EXT_AVANCE_REAL || 0}%"></div>
                             </div>
-                            <span class="small fw-bold">${p.AVANCE_FISICO || 0}%</span>
+                            <span class="small fw-bold">${p.EXT_AVANCE_REAL || 0}%</span>
                         </div>
-                        <small class="text-muted" style="font-size: 0.7rem;">Ejecución: ${p.AVANCE_EJECUCION || 0}%</small>
+                        <small class="text-muted" style="font-size: 0.7rem;">Últ. Act: ${p.EXT_ULT_ACT}</small>
                     </td>
                     <td>
-                        <span class="badge ${p.ESTADO === 'ACTIVO' ? 'bg-success' : 'bg-warning text-dark'}">${p.ESTADO || 'DESCONOCIDO'}</span>
+                        <span class="badge ${p.ESTADO === 'ACTIVO' ? 'bg-success' : 'bg-warning text-dark'} mb-1">${p.ESTADO || '---'}</span><br>
+                        <div class="situacion-label fw-bold text-truncate" style="max-width: 120px;" title="${p.EXT_SITUACION}">${p.EXT_SITUACION}</div>
                     </td>
                     <td>
                         <button class="btn btn-sm btn-outline-primary" onclick="toggleDetail('${detailId}')">Detalle</button>
@@ -187,21 +213,24 @@
                             <div class="col-md-4">
                                 <h6 class="fw-bold border-bottom pb-2">Información Técnica</h6>
                                 <strong>Unidad Formuladora:</strong> ${p.NOMBRE_UF}<br>
-                                <strong>Modalidad:</strong> ${p.DES_MODALIDAD}<br>
+                                <strong>Situación Detallada:</strong> ${p.EXT_SITUACION}<br>
                                 <strong>Tipología:</strong> ${p.DES_TIPOLOGIA || '---'}
                             </div>
                             <div class="col-md-4">
                                 <h6 class="fw-bold border-bottom pb-2">Presupuesto Acumulado</h6>
                                 <strong>Costo Actualizado:</strong> S/ ${parseFloat(p.COSTO_ACTUALIZADO || 0).toLocaleString()}<br>
                                 <strong>Saldo por Ejecutar:</strong> <span class="text-danger">S/ ${parseFloat(p.SALDO_EJECUTAR || 0).toLocaleString()}</span><br>
-                                <strong>Monto Viable:</strong> S/ ${parseFloat(p.MONTO_VIABLE || 0).toLocaleString()}
+                                <strong>Devengado Acumulado:</strong> S/ ${parseFloat(p.DEVEN_ACUMUL_ANIO_ANT || 0).toLocaleString()}
                             </div>
                             <div class="col-md-4">
                                 <h6 class="fw-bold border-bottom pb-2">Cronograma y Beneficio</h6>
-                                <strong>Inicio Programado:</strong> ${p.FEC_INI_EJECUCION || '---'}<br>
-                                <strong>Termino Programado:</strong> ${p.FEC_FIN_EJECUCION || '---'}<br>
+                                <strong>Inicio Ejecución:</strong> ${p.FEC_INI_EJECUCION || '---'}<br>
+                                <strong>Fin Ejecución:</strong> ${p.FEC_FIN_EJECUCION || '---'}<br>
                                 <strong>Beneficiarios:</strong> ${parseInt(p.NUM_HABITANTES_BENEF || 0).toLocaleString()} personas
                             </div>
+                        </div>
+                        <div class="mt-3 text-center">
+                            <a href="https://ofi5.mef.gob.pe/invierte/consultapublica/consultainversiones?cui=${p.CODIGO_UNICO}" target="_blank" class="btn btn-sm btn-dark">Ver Ficha Oficial en Invierte.pe</a>
                         </div>
                     </td>
                 </tr>
