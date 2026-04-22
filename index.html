@@ -65,7 +65,7 @@
 
     <div class="container">
         <div class="header">
-            <h1>🏛️ Dashboard de Inversiones - Control Gubernamental</h1>
+            <h1>🏛️ Dashboard de Inversiones - Invierte.pe / MEF</h1>
             <div id="sync-info" style="font-weight: 700;">Cargando...</div>
         </div>
 
@@ -87,7 +87,7 @@
 
         async function cargarBaseDatos() {
             const list = document.getElementById('results-list');
-            list.innerHTML = '<div class="loading">AUDITANDO ARCHIVOS LOCALES...</div>';
+            list.innerHTML = '<div class="loading">Cargando datos...</div>';
             try {
                 const [d, s, f] = await Promise.all([
                     Promise.all(Array.from({length: 27}, (_, i) => fetch(`data_detalle_parte_${i+1}.json`).then(r => r.json()))),
@@ -97,7 +97,7 @@
                 full_db.detalle = d.flat();
                 full_db.situacion = s.flat();
                 full_db.f12b = f;
-                document.getElementById('sync-info').innerText = `✅ DATOS ACTUALIZADOS`;
+                document.getElementById('sync-info').innerText = `✅ Datos actualizados`;
                 filtrarData();
             } catch (e) { list.innerHTML = '<div class="loading" style="color:red">ERROR AL CARGAR JSON.</div>'; }
         }
