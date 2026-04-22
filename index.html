@@ -140,70 +140,77 @@
 
     // 2. RENDERIZADO DE TARJETAS (Con todos los campos de tus JSON)
     data.forEach(item => {
-        // Cruce de datos con F12B y Situación
-        const f12 = full_db.f12b.find(x => x.CODIGO_UNICO == item.CODIGO_UNICO);
-        const historial = full_db.situacion.filter(x => x.CODIGO_UNICO == item.CODIGO_UNICO)
-                                          .sort((a,b) => new Date(b.FECHA_REGISTRO) - new Date(a.FECHA_REGISTRO));
+    // Cruce de datos con F12B y Situación
+    const f12 = full_db.f12b.find(x => x.CODIGO_UNICO == item.CODIGO_UNICO);
+    const historial = full_db.situacion.filter(x => x.CODIGO_UNICO == item.CODIGO_UNICO)
+                                      .sort((a,b) => new Date(b.FECHA_REGISTRO) - new Date(a.FECHA_REGISTRO));
 
-        const card = document.createElement('div');
-        card.className = 'card';
-        card.innerHTML = `
-            <div class="card-summary" onclick="toggle(${item.CODIGO_UNICO})">
-                <div>
-                    <span class="tag-cui">CUI ${item.CODIGO_UNICO}</span>
-                    <h3 style="margin: 12px 0; font-size: 1.1rem; color: #1e293b;">${item.NOMBRE_INVERSION}</h3>
-                    <div style="font-size: 0.85rem; color: #64748b;">
-                        📍 ${item.PROVINCIA} / ${item.DISTRITO} | 🏛️ <b>${item.ENTIDAD}</b>
-                    </div>
-                </div>
-                <div style="text-align: right; min-width: 180px;">
-                    <span class="tag-status">${item.ESTADO}</span>
-                    <div style="margin-top: 15px;">
-                        <span class="label">PIM 2026</span>
-                        <div style="font-size: 1.3rem; font-weight: 800; color: #004a99;">S/ ${item.PIM_ANIO_ACTUAL?.toLocaleString()}</div>
-                    </div>
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+        <div class="card-summary" onclick="toggle(${item.CODIGO_UNICO})">
+            <div>
+                <span class="tag-cui">CUI ${item.CODIGO_UNICO}</span>
+                <h3 style="margin: 12px 0; font-size: 1.1rem; color: #1e293b;">${item.NOMBRE_INVERSION}</h3>
+                <div style="font-size: 0.85rem; color: #64748b;">
+                    📍 ${item.PROVINCIA} / ${item.DISTRITO} | 🏛️ <b>${item.ENTIDAD}</b>
                 </div>
             </div>
-
-            <div class="detail-panel" id="panel-${item.CODIGO_UNICO}">
-                <div class="info-grid">
-                    <div class="section-full">1. ESTRUCTURA TÉCNICA Y RESPONSABILIDAD</div>
-                    <div class="data-item"><span class="label">UNIDAD FORMULADORA</span><span class="value">${item.NOMBRE_UF}</span></div>
-                    <div class="data-item"><span class="label">UNIDAD EJECUTORA</span><span class="value">${item.NOMBRE_UEI}</span></div>
-                    <div class="data-item"><span class="label">MODALIDAD</span><span class="value">${item.DES_MODALIDAD}</span></div>
-                    <div class="data-item"><span class="label">TIPOLOGÍA</span><span class="value">${item.DES_TIPOLOGIA}</span></div>
-
-                    <div class="section-full">2. ANÁLISIS FINANCIERO Y COSTOS</div>
-                    <div class="data-item"><span class="label">COSTO ACTUALIZADO</span><span class="value">S/ ${item.COSTO_ACTUALIZADO?.toLocaleString()}</span></div>
-                    <div class="data-item"><span class="label">MONTO VIABLE</span><span class="value">S/ ${item.MONTO_VIABLE?.toLocaleString()}</span></div>
-                    <div class="data-item"><span class="label">DEVENGADO ACUMULADO</span><span class="value">S/ ${item.DEVEN_ACUMUL_ANIO_ANT?.toLocaleString()}</span></div>
-                    <div class="data-item"><span class="label" style="color:#e11d48">SALDO POR EJECUTAR</span><span class="value" style="color:#e11d48">S/ ${item.SALDO_EJECUTAR?.toLocaleString()}</span></div>
-
-                    <div class="section-full">3. ESTADO DE EJECUCIÓN (F12B)</div>
-                    <div class="data-item"><span class="label">AVANCE FÍSICO REAL</span><span class="value" style="font-size:1.4rem; color:#059669">${f12?.AVANCE_FISICO || item.AVANCE_FISICO || 0}%</span></div>
-                    <div class="data-item"><span class="label">INICIO / FIN ESTIMADO</span><span class="value">${item.FEC_INI_EJECUCION || 'No definido'} / ${item.FEC_FIN_EJECUCION || 'No definido'}</span></div>
-                    <div class="data-item" style="grid-column: span 2;"><span class="label">ÚLTIMO REPORTE SITUACIONAL (F12B)</span><span class="value">${f12?.ULT_ESTADO_SITUACIONAL || 'Sin reporte reciente'}</span></div>
-                </div>
-
-                <div class="section-full">4. HISTORIAL CRONOLÓGICO DE ALERTAS</div>
-                <div class="situacion-scroll">
-                    ${historial.length > 0 ? historial.map(h => `
-                        <div class="situacion-item">
-                            <span style="font-weight:800; color:#004a99;">[${h.FECHA_REGISTRO}]</span> 
-                            <b style="color:#1e293b;">${h.TIP_REGISTRO}:</b> ${h.DESCRIPCION}
-                        </div>
-                    `).join('') : '<div class="situacion-item">No se registran alertas históricas en el sistema.</div>'}
-                </div>
-
-                <div style="margin-top:20px; padding: 15px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px;">
-                    <span class="label">ALTERNATIVA TÉCNICA</span>
-                    <p style="font-size: 0.8rem; line-height: 1.4; color: #475569; margin: 5px 0;">${item.ALTERNATIVA || 'No hay descripción de alternativa disponible.'}</p>
+            <div style="text-align: right; min-width: 180px;">
+                <span class="tag-status">${item.ESTADO}</span>
+                <div style="margin-top: 15px;">
+                    <span class="label">PIM 2026</span>
+                    <div style="font-size: 1.3rem; font-weight: 800; color: #004a99;">S/ ${item.PIM_ANIO_ACTUAL?.toLocaleString()}</div>
                 </div>
             </div>
-        `;
-        container.appendChild(card);
-    });
-}
+        </div>
+
+        <div class="detail-panel" id="panel-${item.CODIGO_UNICO}">
+            <div class="info-grid">
+                <div class="section-full">1. ESTRUCTURA TÉCNICA Y RESPONSABILIDAD</div>
+                <div class="data-item"><span class="label">UNIDAD FORMULADORA</span><span class="value">${item.NOMBRE_UF}</span></div>
+                <div class="data-item"><span class="label">UNIDAD EJECUTORA</span><span class="value">${item.NOMBRE_UEI}</span></div>
+                
+                <div class="data-item">
+                    <span class="label">¿TIENE EXPEDIENTE TÉCNICO?</span>
+                    <span class="value" style="color: ${item.EXPEDIENTE_TECNICO === 'SI' ? '#059669' : '#e11d48'}; font-weight: 800;">
+                        ${item.EXPEDIENTE_TECNICO || 'NO REGISTRA'}
+                    </span>
+                </div>
+
+                <div class="data-item"><span class="label">MODALIDAD</span><span class="value">${item.DES_MODALIDAD}</span></div>
+                <div class="data-item"><span class="label">TIPOLOGÍA</span><span class="value">${item.DES_TIPOLOGIA}</span></div>
+
+                <div class="section-full">2. ANÁLISIS FINANCIERO Y COSTOS</div>
+                <div class="data-item"><span class="label">COSTO ACTUALIZADO</span><span class="value">S/ ${item.COSTO_ACTUALIZADO?.toLocaleString()}</span></div>
+                <div class="data-item"><span class="label">MONTO VIABLE</span><span class="value">S/ ${item.MONTO_VIABLE?.toLocaleString()}</span></div>
+                <div class="data-item"><span class="label">DEVENGADO ACUMULADO</span><span class="value">S/ ${item.DEVEN_ACUMUL_ANIO_ANT?.toLocaleString()}</span></div>
+                <div class="data-item"><span class="label" style="color:#e11d48">SALDO POR EJECUTAR</span><span class="value" style="color:#e11d48">S/ ${item.SALDO_EJECUTAR?.toLocaleString()}</span></div>
+
+                <div class="section-full">3. ESTADO DE EJECUCIÓN (F12B)</div>
+                <div class="data-item"><span class="label">AVANCE FÍSICO REAL</span><span class="value" style="font-size:1.4rem; color:#059669">${f12?.AVANCE_FISICO || item.AVANCE_FISICO || 0}%</span></div>
+                <div class="data-item"><span class="label">INICIO / FIN ESTIMADO</span><span class="value">${item.FEC_INI_EJECUCION || 'No definido'} / ${item.FEC_FIN_EJECUCION || 'No definido'}</span></div>
+                <div class="data-item" style="grid-column: span 2;"><span class="label">ÚLTIMO REPORTE SITUACIONAL (F12B)</span><span class="value">${f12?.ULT_ESTADO_SITUACIONAL || 'Sin reporte reciente'}</span></div>
+            </div>
+
+            <div class="section-full">4. HISTORIAL CRONOLÓGICO DE ALERTAS</div>
+            <div class="situacion-scroll">
+                ${historial.length > 0 ? historial.map(h => `
+                    <div class="situacion-item">
+                        <span style="font-weight:800; color:#004a99;">[${h.FECHA_REGISTRO}]</span> 
+                        <b style="color:#1e293b;">${h.TIP_REGISTRO}:</b> ${h.DESCRIPCION}
+                    </div>
+                `).join('') : '<div class="situacion-item">No se registran alertas históricas en el sistema.</div>'}
+            </div>
+
+            <div style="margin-top:20px; padding: 15px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px;">
+                <span class="label">ALTERNATIVA TÉCNICA</span>
+                <p style="font-size: 0.8rem; line-height: 1.4; color: #475569; margin: 5px 0;">${item.ALTERNATIVA || 'No hay descripción de alternativa disponible.'}</p>
+            </div>
+        </div>
+    `;
+    container.appendChild(card);
+});
         window.onload = cargarBaseDatos;
     </script>
 </body>
