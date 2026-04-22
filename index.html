@@ -3,179 +3,263 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Regional de Inversiones - Integración Total</title>
+    <title>Seguimiento de Inversiones - Región Lambayeque</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        :root { --blue: #004a99; --accent: #059669; --warning: #d97706; --bg: #f1f5f9; }
-        body { font-family: 'Inter', sans-serif; background-color: var(--bg); color: #1e293b; margin: 0; padding: 20px; }
+        :root { 
+            --primary-blue: #004a99; /* Azul institucional de la imagen 2 */
+            --accent-green: #059669; 
+            --warning-orange: #d97706; 
+            --bg-gray: #f1f5f9; 
+            --border: #e2e8f0;
+        }
+
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: var(--bg-gray); 
+            color: #1e293b; 
+            margin: 0; 
+            padding: 20px; 
+            display: flex;
+            flex-direction: column;
+            align-items: center; /* Centra el contenido */
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1100px; /* Evita que use todo el ancho de la ventana */
+        }
         
-        /* Header */
-        .header { background: white; padding: 1.5rem 2rem; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
-        .header h1 { margin: 0; font-size: 1.5rem; color: var(--blue); }
+        /* Header Estilo Institucional */
+        .header { 
+            background: white; 
+            padding: 1.5rem 2rem; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); 
+            margin-bottom: 25px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            border-bottom: 4px solid var(--primary-blue);
+        }
+        .header h1 { margin: 0; font-size: 1.6rem; color: var(--primary-blue); }
 
-        /* Filtros */
-        .filter-bar { background: white; padding: 1.5rem; border-radius: 12px; display: grid; grid-template-columns: 1fr 2fr 150px; gap: 15px; margin-bottom: 20px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-        select, input { padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.9rem; }
-        .btn-main { background: var(--blue); color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; transition: 0.2s; }
-        .btn-main:hover { background: #003366; }
+        /* Filtros Compactos */
+        .filter-bar { 
+            background: white; 
+            padding: 1.5rem; 
+            border-radius: 12px; 
+            display: grid; 
+            grid-template-columns: 1.2fr 2fr 150px; 
+            gap: 20px; 
+            margin-bottom: 25px; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1); 
+        }
+        select, input { padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.95rem; }
+        .btn-consultar { 
+            background: var(--primary-blue); 
+            color: white; 
+            border: none; 
+            border-radius: 8px; 
+            font-weight: 700; 
+            cursor: pointer; 
+            transition: background 0.3s; 
+        }
+        .btn-consultar:hover { background: #003366; }
 
-        /* Tarjeta Principal */
-        .card { background: white; border-radius: 12px; margin-bottom: 15px; border: 1px solid #e2e8f0; overflow: hidden; }
-        .card-summary { padding: 1.5rem; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
-        .card-summary:hover { background: #f8fafc; }
-
-        /* Tags */
-        .tag-cui { background: #f1f5f9; padding: 4px 8px; border-radius: 4px; font-weight: 700; font-size: 0.8rem; color: var(--blue); }
-        .tag-status { background: #dcfce7; color: #166534; padding: 4px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; }
-
-        /* Panel de Detalle (Oculto por defecto) */
-        .detail-panel { display: none; padding: 1.5rem; background: #fafafa; border-top: 1px solid #e2e8f0; }
-        .detail-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+        /* Tarjetas de Inversión Estilo Imagen 2 */
+        .card { 
+            background: white; 
+            border-radius: 12px; 
+            margin-bottom: 15px; 
+            border: 1px solid var(--border); 
+            transition: box-shadow 0.3s;
+        }
+        .card:hover { box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
         
-        .section-title { font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; margin-bottom: 10px; display: block; }
-        .data-row { margin-bottom: 8px; font-size: 0.85rem; }
-        .data-label { font-weight: 600; color: #475569; }
+        .card-summary { 
+            padding: 1.5rem; 
+            display: grid; 
+            grid-template-columns: 1fr auto; 
+            gap: 20px;
+            cursor: pointer;
+        }
 
-        /* Alertas F12B */
-        .alert-box { background: #fff7ed; border-left: 4px solid var(--warning); padding: 10px; border-radius: 4px; margin-top: 10px; font-size: 0.85rem; }
+        .tag-cui { background: #eff6ff; color: var(--primary-blue); padding: 4px 10px; border-radius: 6px; font-weight: 800; font-size: 0.85rem; }
+        .tag-status { background: #dcfce7; color: #166534; padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; }
 
-        .loading { text-align: center; padding: 50px; font-size: 1.1rem; color: var(--blue); font-weight: 600; }
+        /* Detalle Expandido - Más información */
+        .detail-panel { 
+            display: none; 
+            padding: 2rem; 
+            background: #fcfcfc; 
+            border-top: 1px solid var(--border); 
+            animation: slideDown 0.3s ease-out;
+        }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .detail-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; }
+        .section-title { 
+            font-size: 0.8rem; 
+            font-weight: 800; 
+            color: #64748b; 
+            text-transform: uppercase; 
+            letter-spacing: 0.05em;
+            border-bottom: 2px solid var(--primary-blue); 
+            padding-bottom: 5px; 
+            margin-bottom: 15px; 
+            display: block; 
+        }
+        .data-block { margin-bottom: 12px; font-size: 0.9rem; line-height: 1.4; }
+        .data-label { font-weight: 600; color: #475569; display: block; font-size: 0.75rem; }
+        .data-value { color: #1e293b; font-weight: 500; }
+
+        .monto-pim { color: var(--primary-blue); font-weight: 800; font-size: 1.2rem; }
+        
+        .alert-problema { 
+            background: #fff7ed; 
+            border: 1px solid #fed7aa; 
+            border-left: 5px solid var(--warning-orange); 
+            padding: 12px; 
+            border-radius: 8px; 
+            margin-top: 15px;
+        }
+
+        .loading { text-align: center; padding: 100px; color: var(--primary-blue); font-weight: 700; }
     </style>
 </head>
 <body>
 
-    <div class="header">
-        <h1>📊 Seguimiento de Inversiones - Región Lambayeque</h1>
-        <div id="counter" style="font-size: 0.8rem; color: #64748b;">Cargando base de datos...</div>
-    </div>
+    <div class="container">
+        <div class="header">
+            <h1>🏛️ Dashboard Regional de Inversiones</h1>
+            <div id="sync-info" style="font-size: 0.85rem; color: #64748b; font-weight: 600;">Sincronizando...</div>
+        </div>
 
-    <div class="filter-bar">
-        <select id="selDepto">
-            <option value="LAMBAYEQUE" selected>LAMBAYEQUE</option>
-            <option value="CUSCO">CUSCO</option>
-            <option value="AREQUIPA">AREQUIPA</option>
-        </select>
-        <input type="text" id="txtSearch" placeholder="Buscar por CUI, nombre o distrito...">
-        <button class="btn-main" onclick="ejecutarFiltro()">CONSULTAR</button>
-    </div>
+        <div class="filter-bar">
+            <div>
+                <span class="data-label" style="margin-bottom: 5px;">DEPARTAMENTO</span>
+                <select id="regionSelect" style="width: 100%;">
+                    <option value="LAMBAYEQUE" selected>LAMBAYEQUE (Sede Central)</option>
+                    <option value="AMAZONAS">AMAZONAS</option>
+                    <option value="CUSCO">CUSCO</option>
+                </select>
+            </div>
+            <div>
+                <span class="data-label" style="margin-bottom: 5px;">FILTRO DE BÚSQUEDA</span>
+                <input type="text" id="searchInput" placeholder="CUI, Distrito o Nombre del Proyecto..." style="width: 96%;">
+            </div>
+            <button class="btn-consultar" onclick="filtrarData()">ACTUALIZAR</button>
+        </div>
 
-    <div id="main-list"></div>
+        <div id="results-list"></div>
+    </div>
 
     <script>
-        let db_detalle = [];
-        let db_f12b = [];
-        let db_situacion = [];
+        let full_db = { detalle: [], f12b: [], situacion: [] };
 
-        async function init() {
-            const listDiv = document.getElementById('main-list');
-            listDiv.innerHTML = '<div class="loading">Sincronizando con base de datos local...</div>';
+        async function cargarBaseDatos() {
+            const list = document.getElementById('results-list');
+            list.innerHTML = '<div class="loading">Cargando datos estratégicos para la Alta Dirección...</div>';
 
-            // Cargar archivos en paralelo
             try {
-                const promesasDetalle = Array.from({length: 27}, (_, i) => fetch(`data_detalle_parte_${i+1}.json`).then(r => r.json()));
-                const promesasSituacion = Array.from({length: 10}, (_, i) => fetch(`data_situacion_parte_${i+1}.json`).then(r => r.json()));
-                
-                const resultadosDetalle = await Promise.all(promesasDetalle);
-                const resultadosSituacion = await Promise.all(promesasSituacion);
-                
-                db_detalle = resultadosDetalle.flat();
-                db_situacion = resultadosSituacion.flat();
-                
-                const resF12b = await fetch('data_f12b_parte_1.json');
-                db_f12b = await resF12b.json();
+                // Cargar detalle (27 partes), f12b (1 parte) y situacion (10 partes)
+                const [d, s, f] = await Promise.all([
+                    Promise.all(Array.from({length: 27}, (_, i) => fetch(`data_detalle_parte_${i+1}.json`).then(r => r.json()))),
+                    Promise.all(Array.from({length: 10}, (_, i) => fetch(`data_situacion_parte_${i+1}.json`).then(r => r.json()))),
+                    fetch('data_f12b_parte_1.json').then(r => r.json())
+                ]);
 
-                document.getElementById('counter').innerText = `${db_detalle.length} inversiones sincronizadas`;
-                ejecutarFiltro();
-            } catch (err) {
-                listDiv.innerHTML = '<div class="loading" style="color:red">Error al cargar archivos JSON. Verifique que estén en el servidor.</div>';
+                full_db.detalle = d.flat();
+                full_db.situacion = s.flat();
+                full_db.f12b = f;
+
+                document.getElementById('sync-info').innerText = `✅ ${full_db.detalle.length.toLocaleString()} inversiones actualizadas`;
+                filtrarData();
+            } catch (e) {
+                list.innerHTML = '<div class="loading" style="color:red">Error de conexión con los archivos JSON.</div>';
             }
         }
 
-        function ejecutarFiltro() {
-            const depto = document.getElementById('selDepto').value;
-            const term = document.getElementById('txtSearch').value.toLowerCase();
+        function filtrarData() {
+            const region = document.getElementById('regionSelect').value;
+            const query = document.getElementById('searchInput').value.toLowerCase();
             
-            const filtrados = db_detalle.filter(i => 
-                i.DEPARTAMENTO === depto && 
-                (i.NOMBRE_INVERSION.toLowerCase().includes(term) || i.CODIGO_UNICO.toString().includes(term))
+            const filtrados = full_db.detalle.filter(i => 
+                i.DEPARTAMENTO === region && 
+                (i.NOMBRE_INVERSION.toLowerCase().includes(query) || i.CODIGO_UNICO.toString().includes(query))
             ).slice(0, 100);
 
-            render(filtrados);
+            renderizar(filtrados);
         }
 
-        function toggleDetail(id) {
-            const el = document.getElementById(`detail-${id}`);
-            el.style.display = (el.style.display === 'block') ? 'none' : 'block';
+        function toggle(cui) {
+            const p = document.getElementById(`panel-${cui}`);
+            p.style.display = p.style.display === 'block' ? 'none' : 'block';
         }
 
-        function render(data) {
-            const container = document.getElementById('main-list');
+        function renderizar(data) {
+            const container = document.getElementById('results-list');
             container.innerHTML = "";
 
-            data.forEach(inv => {
-                // Buscar cruce de datos
-                const f12 = db_f12b.find(x => x.CODIGO_UNICO == inv.CODIGO_UNICO);
-                const hist = db_situacion.filter(x => x.CODIGO_UNICO == inv.CODIGO_UNICO)
-                                       .sort((a,b) => new Date(b.FECHA_REGISTRO) - new Date(a.FECHA_REGISTRO));
+            data.forEach(item => {
+                const f12 = full_db.f12b.find(x => x.CODIGO_UNICO == item.CODIGO_UNICO);
+                const hist = full_db.situacion.filter(x => x.CODIGO_UNICO == item.CODIGO_UNICO)
+                                             .sort((a,b) => new Date(b.FECHA_REGISTRO) - new Date(a.FECHA_REGISTRO))[0];
 
                 const card = document.createElement('div');
                 card.className = 'card';
                 card.innerHTML = `
-                    <div class="card-summary" onclick="toggleDetail(${inv.CODIGO_UNICO})">
-                        <div style="flex: 1">
-                            <span class="tag-cui">CUI ${inv.CODIGO_UNICO}</span>
-                            <h3 style="margin: 8px 0; font-size: 1rem; color: #1e293b;">${inv.NOMBRE_INVERSION}</h3>
-                            <div style="font-size: 0.8rem; color: #64748b;">📍 ${inv.PROVINCIA} / ${inv.DISTRITO}</div>
-                        </div>
-                        <div style="text-align: right; min-width: 180px;">
-                            <span class="tag-status">${inv.ESTADO}</span>
-                            <div style="margin-top: 10px;">
-                                <div class="data-label" style="font-size: 0.7rem;">PIM 2026</div>
-                                <div style="font-weight: 700; color: var(--accent);">S/ ${inv.PIM_ANIO_ACTUAL.toLocaleString()}</div>
+                    <div class="card-summary" onclick="toggle(${item.CODIGO_UNICO})">
+                        <div>
+                            <span class="tag-cui">CUI ${item.CODIGO_UNICO}</span>
+                            <h3 style="margin: 10px 0; font-size: 1.05rem; line-height: 1.4;">${item.NOMBRE_INVERSION}</h3>
+                            <div style="font-size: 0.85rem; color: #64748b; font-weight: 500;">
+                                📍 ${item.PROVINCIA} / ${item.DISTRITO} | 🏛️ ${item.ENTIDAD}
                             </div>
-                            <button class="btn-main" style="padding: 5px 10px; font-size: 0.7rem; margin-top: 10px;">VER DETALLE COMPLETO</button>
+                        </div>
+                        <div style="text-align: right; min-width: 160px;">
+                            <span class="tag-status">${item.ESTADO}</span>
+                            <div style="margin-top: 15px;">
+                                <span class="data-label">PIM 2026</span>
+                                <span class="monto-pim">S/ ${item.PIM_ANIO_ACTUAL.toLocaleString()}</span>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="detail-panel" id="detail-${inv.CODIGO_UNICO}">
+                    <div class="detail-panel" id="panel-${item.CODIGO_UNICO}">
                         <div class="detail-grid">
                             <div>
-                                <span class="section-title">Información Técnica</span>
-                                <div class="data-row"><span class="data-label">Función:</span> ${inv.FUNCION}</div>
-                                <div class="data-row"><span class="data-label">Programa:</span> ${inv.PROGRAMA}</div>
-                                <div class="data-row"><span class="data-label">U. Formuladora:</span> ${inv.NOMBRE_UF}</div>
-                                <div class="data-row"><span class="data-label">Beneficiarios:</span> ${inv.NUM_HABITANTES_BENEF || 0} pers.</div>
+                                <span class="section-title">Estructura Técnica</span>
+                                <div class="data-block"><span class="data-label">FUNCIÓN</span><span class="data-value">${item.FUNCION}</span></div>
+                                <div class="data-block"><span class="data-label">PROGRAMA</span><span class="data-value">${item.PROGRAMA}</span></div>
+                                <div class="data-block"><span class="data-label">UNIDAD FORMULADORA</span><span class="data-value">${item.NOMBRE_UF}</span></div>
+                                <div class="data-block"><span class="data-label">MODALIDAD</span><span class="data-value">${item.DES_MODALIDAD}</span></div>
                             </div>
-                            
                             <div>
-                                <span class="section-title">Presupuesto y Plazos</span>
-                                <div class="data-row"><span class="data-label">Costo Actualizado:</span> S/ ${inv.COSTO_ACTUALIZADO.toLocaleString()}</div>
-                                <div class="data-row"><span class="data-label">Saldo por Ejecutar:</span> S/ ${(inv.COSTO_ACTUALIZADO - inv.DEV_ANIO_ACTUAL).toLocaleString()}</div>
-                                <div class="data-row"><span class="data-label">Inicio Ejecución:</span> ${inv.FEC_INI_EJECUCION || 'Sin fecha'}</div>
-                                <div class="data-row"><span class="data-label">Fin Ejecución:</span> ${inv.FEC_FIN_EJECUCION || 'Sin fecha'}</div>
+                                <span class="section-title">Análisis Financiero</span>
+                                <div class="data-block"><span class="data-label">COSTO ACTUALIZADO</span><span class="data-value">S/ ${item.COSTO_ACTUALIZADO.toLocaleString()}</span></div>
+                                <div class="data-block"><span class="data-label">DEVENGADO ACUMULADO</span><span class="data-value">S/ ${(item.DEV_ANIO_ACTUAL || 0).toLocaleString()}</span></div>
+                                <div class="data-block"><span class="data-label">SALDO POR EJECUTAR</span><span class="data-value" style="color:red; font-weight:700;">S/ ${(item.COSTO_ACTUALIZADO - (item.DEV_ANIO_ACTUAL || 0)).toLocaleString()}</span></div>
+                                <div class="data-block"><span class="data-label">POBLACIÓN BENEFICIADA</span><span class="data-value">${item.NUM_HABITANTES_BENEF || 0} habitantes</span></div>
                             </div>
-
                             <div>
-                                <span class="section-title">Situación Actual (F12B)</span>
-                                <div class="data-row"><span class="data-label">Avance Físico:</span> ${f12 ? (f12.AVANCE_FISICO || 0) : (inv.AVANCE_FISICO || 0)}%</div>
-                                <div class="data-row"><span class="data-label">Última Act. F12B:</span> ${f12 ? f12.FECHA_ULT_ACT_F12B : 'No disponible'}</div>
+                                <span class="section-title">Estado de Ejecución</span>
+                                <div class="data-block"><span class="data-label">AVANCE FÍSICO REAL</span><span class="data-value" style="font-size:1.2rem; color:var(--primary-blue);">${f12 ? (f12.AVANCE_FISICO || 0) : (item.AVANCE_FISICO || 0)}%</span></div>
+                                <div class="data-block"><span class="data-label">INICIO / FIN ESTIMADO</span><span class="data-value">${item.FEC_INI_EJECUCION || '--'} / ${item.FEC_FIN_EJECUCION || '--'}</span></div>
                                 ${f12 && f12.ULT_PROBLEMA ? `
-                                    <div class="alert-box">
-                                        <strong>⚠️ Problema detectado:</strong><br>${f12.ULT_PROBLEMA}<br>
-                                        <strong>Acción:</strong> ${f12.ACC_PROBLEMA}
+                                    <div class="alert-problema">
+                                        <span class="data-label" style="color:#9a3412">REPORTE DE INCIDENCIA:</span>
+                                        <span style="font-size:0.8rem; font-weight:600;">${f12.ULT_PROBLEMA}</span>
                                     </div>
                                 ` : ''}
                             </div>
                         </div>
-
-                        <div style="margin-top: 20px;">
-                            <span class="section-title">Historial de Anotaciones (Últimos 3 estados)</span>
-                            ${hist.slice(0, 3).map(h => `
-                                <div style="font-size: 0.8rem; margin-bottom: 10px; padding: 8px; background: white; border-radius: 4px; border: 1px inset #eee;">
-                                    <span style="color: var(--blue); font-weight: 600;">[${h.FECHA_REGISTRO}]</span> - 
-                                    <span style="color: #64748b; font-style: italic;">${h.TIP_REGISTRO}:</span> ${h.DESCRIPCION}
-                                </div>
-                            `).join('')}
+                        <div style="margin-top: 25px; background: white; padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
+                            <span class="section-title">Último Reporte Situacional</span>
+                            <p style="font-size: 0.9rem; color: #475569; margin: 0; line-height: 1.6;">
+                                ${hist ? `<strong>[${hist.FECHA_REGISTRO}]</strong> ${hist.DESCRIPCION}` : 'No se registran anotaciones recientes para esta inversión.'}
+                            </p>
                         </div>
                     </div>
                 `;
@@ -183,7 +267,7 @@
             });
         }
 
-        window.onload = init;
+        window.onload = cargarBaseDatos;
     </script>
 </body>
 </html>
