@@ -26,7 +26,7 @@ jobs:
       - name: Ejecutar Descarga y Conversion
         run: python scraper.py
         # Aumentamos el timeout por si el MEF demora en responder
-        timeout-minutes: 30 
+        timeout-minutes: 60 
 
       - name: Guardar cambios en GitHub
         run: |
